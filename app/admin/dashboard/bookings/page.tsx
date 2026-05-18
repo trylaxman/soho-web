@@ -1,5 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+type BookingItem = {
+  id: string;
+  cleaningType: string;
+  homeSize: string;
+  status: string;
+  createdAt: Date;
+  userProfile: {
+    fullName: string;
+    email: string;
+  };
+};
 
 export default async function AdminBookingsPage() {
     const bookings = await prisma.booking.findMany({
@@ -44,7 +55,7 @@ export default async function AdminBookingsPage() {
                             </thead>
 
                             <tbody>
-                                {bookings.map((booking) => (
+                                {bookings.map((booking: BookingItem) => (
                                     <tr
                                         key={booking.id}
                                         className="border-b border-[#2a2419] last:border-b-0"
