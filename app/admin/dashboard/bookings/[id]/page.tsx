@@ -1,7 +1,19 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import BookingStatusActions from "@/components/admin/bookings/BookingStatusActions";
-import type { Payment } from "@prisma/client";
+
+type BookingPayment = {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  provider: string;
+  paymentIntentId: string | null;
+  checkoutSessionId: string | null;
+  transactionId: string | null;
+  paidAt: Date | null;
+  createdAt: Date;
+};
 
 export default async function BookingDetailPage({
     params,
@@ -121,7 +133,7 @@ export default async function BookingDetailPage({
                             <p className="text-sm text-[#8f8778]">No payments recorded yet.</p>
                         ) : (
                             <div className="grid gap-4">
-                                {booking.payments.map((payment: Payment) => (
+                                {booking.payments.map((payment: BookingPayment) => (
                                     <div
                                         key={payment.id}
                                         className="rounded-[22px] border border-[#2f291d] bg-[#111111] p-5"
