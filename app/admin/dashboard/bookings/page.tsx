@@ -4,11 +4,17 @@ type BookingItem = {
   id: string;
   cleaningType: string;
   homeSize: string;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  kitchens: number | null;
+  preferredDate: Date | null;
+  preferredTime: string | null;
   status: string;
   createdAt: Date;
   userProfile: {
     fullName: string;
     email: string;
+    phone: string;
   };
 };
 
