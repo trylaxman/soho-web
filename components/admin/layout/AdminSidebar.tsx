@@ -9,8 +9,6 @@ const navItems = [
   { label: "Bookings", href: "/admin/dashboard/bookings" },
   { label: "Professionals", href: "/admin/dashboard/professionals" },
   { label: "Customers", href: "/admin/dashboard/customers" },
-  { label: "Availability", href: "/admin/dashboard/availability" },
-  { label: "Settings", href: "/admin/dashboard/settings" },
 ];
 
 export default function AdminSidebar() {

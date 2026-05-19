@@ -547,7 +547,7 @@ function BookingCTASection() {
   return (
     <section className="bg-[#050403] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl overflow-hidden border border-[#a8792f] bg-[#090806]">
-        <div className="relative grid gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[0.35fr_1fr_0.55fr] lg:items-center">
+        <div className="relative grid gap-8 px-6 py-10 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center lg:py-12">
           <Image
             src="/images/home/cta-skyline.png"
             alt="NYC skyline line art"
@@ -556,12 +556,8 @@ function BookingCTASection() {
             className="object-cover opacity-12"
           />
 
-          <div className="relative z-10 hidden lg:block">
-            <div className="h-20 border-r border-[#6d4a1f]" />
-          </div>
-
           <div className="relative z-10">
-            <h2 className="font-serif text-3xl text-[#f7efe2] sm:text-4xl lg:text-3xl">
+            <h2 className="font-serif text-3xl leading-tight text-[#f7efe2] sm:text-4xl">
               Ready To Book Your Cleaning?
             </h2>
 
@@ -571,7 +567,7 @@ function BookingCTASection() {
             </p>
           </div>
 
-          <div className="relative z-10 flex flex-col gap-3 sm:flex-row lg:justify-end">
+          <div className="relative z-10 flex flex-col gap-4 sm:flex-row lg:justify-end">
             <Link
               href="/onboarding/user"
               className="rounded-xl bg-[#d6ab5f] px-6 py-4 text-center text-sm font-semibold text-black transition hover:scale-[1.02]"
