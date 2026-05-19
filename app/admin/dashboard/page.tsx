@@ -1,5 +1,22 @@
 import { prisma } from "@/lib/prisma";
 
+type RecentBookingItem = {
+  id: string;
+  cleaningType: string;
+  homeSize: string;
+  status: string;
+  userProfile: {
+    fullName: string;
+  };
+};
+
+type RecentProfessionalItem = {
+  id: string;
+  fullName: string;
+  email: string;
+  status: string;
+};
+
 export default async function AdminDashboardPage() {
   const [
     totalBookings,
@@ -100,7 +117,7 @@ export default async function AdminDashboardPage() {
             <EmptyState text="No bookings available yet." />
           ) : (
             <div className="grid gap-3">
-              {recentBookings.map((booking) => (
+              {recentBookings.map((booking: RecentBookingItem) => (
                 <a
                   key={booking.id}
                   href={`/admin/dashboard/bookings/${booking.id}`}
@@ -129,7 +146,7 @@ export default async function AdminDashboardPage() {
             <EmptyState text="No professional applications available yet." />
           ) : (
             <div className="grid gap-3">
-              {recentProfessionals.map((professional) => (
+              {recentProfessionals.map((professional: RecentProfessionalItem) => (
                 <a
                   key={professional.id}
                   href={`/admin/dashboard/professionals/${professional.id}`}
