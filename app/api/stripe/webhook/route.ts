@@ -37,7 +37,6 @@ export async function POST(req: Request) {
     }
 
     const session = event.data.object;
-
     const metadata = session.metadata;
 
     if (!metadata) {
@@ -45,6 +44,28 @@ export async function POST(req: Request) {
         { success: false, message: "Missing checkout metadata." },
         { status: 400 }
       );
+    }
+
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        checkoutSessionId: session.id,
+      },
+      include: {
+        booking: true,
+      },
+    });
+
+    if (existingPayment) {
+      console.log("STRIPE_WEBHOOK_DUPLICATE_SKIPPED", {
+        checkoutSessionId: session.id,
+        paymentId: existingPayment.id,
+        bookingId: existingPayment.bookingId,
+      });
+
+      return NextResponse.json({
+        received: true,
+        duplicate: true,
+      });
     }
 
     const pricing = calculateCleaningPrice({

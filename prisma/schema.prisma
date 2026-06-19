@@ -84,7 +84,7 @@ model Payment {
 
   provider          String  @default("STRIPE")
   paymentIntentId   String?
-  checkoutSessionId String?
+  checkoutSessionId String? @unique
   transactionId     String?
 
   paidAt     DateTime?
