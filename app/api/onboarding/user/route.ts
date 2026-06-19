@@ -11,6 +11,7 @@ import {
   type CleaningType as PricingCleaningType,
   type HomeSize,
 } from "@/lib/pricing/cleaning-pricing";
+import { getBookingCreatedSmsBody, sendSms } from "@/lib/twilio";
 
 export async function POST(req: Request) {
   try {
@@ -79,6 +80,31 @@ export async function POST(req: Request) {
         userProfile: true,
         payments: true,
       },
+    });
+
+    const bookingDate = booking.preferredDate
+      ? booking.preferredDate.toLocaleDateString("en-US")
+      : "your selected date";
+
+    const bookingTime = booking.preferredTime || "your selected time";
+
+    const smsBody = getBookingCreatedSmsBody({
+      date: bookingDate,
+      time: bookingTime,
+    });
+
+    console.log("BOOKING_SMS_ATTEMPT", {
+      to: booking.userProfile.phone,
+      body: smsBody,
+    });
+
+    const smsSent = await sendSms({
+      to: booking.userProfile.phone,
+      body: smsBody,
+    });
+
+    console.log("BOOKING_SMS_RESULT", {
+      smsSent,
     });
 
     return NextResponse.json({

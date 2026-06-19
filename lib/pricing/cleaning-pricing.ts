@@ -1,6 +1,6 @@
 export type CleaningType =
-  | "STANDARD"
-  | "DEEP"
+  | "SOHO_SIGNATURE"
+  | "SOHO_SIGNATURE_DEEP"
   | "MOVE_IN_MOVE_OUT"
   | "RECURRING"
   | "AIRBNB_TURNOVER";
@@ -15,8 +15,8 @@ type PricingRule = {
 };
 
 export const pricingConfig: Record<CleaningType, PricingRule> = {
-  STANDARD: {
-    label: "Standard Cleaning",
+  SOHO_SIGNATURE: {
+    label: "SoHo Signature",
     basePrices: {
       "1BHK": 150,
       "2BHK": 220,
@@ -32,8 +32,8 @@ export const pricingConfig: Record<CleaningType, PricingRule> = {
     extraSqftRate: 0.15,
   },
 
-  DEEP: {
-    label: "Deep Cleaning",
+  SOHO_SIGNATURE_DEEP: {
+    label: "SoHo Signature Deep",
     basePrices: {
       "1BHK": 250,
       "2BHK": 350,

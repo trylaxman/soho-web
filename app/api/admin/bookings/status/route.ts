@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { BookingStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getBookingStatusSmsBody, sendSms } from "@/lib/twilio";
 
 const ADMIN_SESSION_COOKIE = "soho_admin_session";
 
@@ -40,6 +41,14 @@ export async function PATCH(req: Request) {
       data: {
         status: body.status,
       },
+      include: {
+        userProfile: true,
+      },
+    });
+
+    await sendSms({
+      to: booking.userProfile.phone,
+      body: getBookingStatusSmsBody(body.status),
     });
 
     return NextResponse.json({

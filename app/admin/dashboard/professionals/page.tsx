@@ -2,6 +2,23 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+type ProfessionalItem = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  profileImageUrl: string | null;
+  experienceYears: number | null;
+  servicesOffered: string[];
+  serviceAreas: string[];
+  availability: string[];
+  hasOwnSupplies: boolean;
+  hasTransport: boolean;
+  bio: string | null;
+  status: string;
+  createdAt: Date;
+};
+
 export default async function AdminProfessionalsPage() {
     const professionals = await prisma.professionalProfile.findMany({
         orderBy: {
@@ -29,7 +46,7 @@ export default async function AdminProfessionalsPage() {
                 <EmptyState />
             ) : (
                 <div className="grid gap-6">
-                    {professionals.map((professional) => (
+                    {professionals.map((professional: ProfessionalItem) => (
                         <article
                             key={professional.id}
                             className="rounded-[28px] border border-[#2a2419] bg-[#0a0a0a] p-6"

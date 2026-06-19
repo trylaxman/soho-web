@@ -574,13 +574,6 @@ function BookingCTASection() {
             >
               Book Your Cleaning
             </Link>
-
-            <Link
-              href="/onboarding/professional"
-              className="rounded-xl border border-[#8f6b2f] px-6 py-4 text-center text-sm font-medium text-[#e7c176] transition hover:bg-[#151008]"
-            >
-              Join as Professional
-            </Link>
           </div>
         </div>
       </div>
