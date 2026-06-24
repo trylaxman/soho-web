@@ -71,9 +71,25 @@ export default function ProfessionalOnboardingForm() {
     const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
     const [isUploadingIdFront, setIsUploadingIdFront] = useState(false);
     const [isUploadingIdBack, setIsUploadingIdBack] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
+    const [isOtpSent, setIsOtpSent] = useState(false);
+    const [otpMessage, setOtpMessage] = useState("");
+    const [otpError, setOtpError] = useState("");
+    const [isSendingOtp, setIsSendingOtp] = useState(false);
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+    const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+    const [countryCode, setCountryCode] = useState("+1");
 
     const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
+
+        if (field === "phone") {
+            setIsPhoneVerified(false);
+            setIsOtpSent(false);
+            setOtpCode("");
+            setOtpMessage("");
+            setOtpError("");
+        }
     };
 
     const toggleArrayValue = (
@@ -92,7 +108,81 @@ export default function ProfessionalOnboardingForm() {
         });
     };
 
+    const normalizePhone = () => {
+        const rawPhone = formData.phone.replace(/\s+/g, "").trim();
+
+        const cleanedPhone = rawPhone.startsWith(countryCode)
+            ? rawPhone.slice(countryCode.length)
+            : rawPhone.replace(/^\+\d{1,4}/, "");
+
+        return `${countryCode}${cleanedPhone}`;
+    };
+
+    const sendOtp = async () => {
+        try {
+            setIsSendingOtp(true);
+            setOtpMessage("");
+            setOtpError("");
+
+            const phone = normalizePhone();
+
+            const response = await fetch("/api/sms/send-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Failed to send OTP");
+            }
+
+            setIsOtpSent(true);
+            setOtpMessage("Verification code sent successfully.");
+        } catch (error) {
+            setOtpError(error instanceof Error ? error.message : "Something went wrong");
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
+
+    const verifyOtp = async () => {
+        try {
+            setIsVerifyingOtp(true);
+            setOtpMessage("");
+            setOtpError("");
+
+            const response = await fetch("/api/sms/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    phone: normalizePhone(),
+                    code: otpCode,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || "Invalid verification code");
+            }
+
+            setIsPhoneVerified(true);
+            setOtpMessage("Phone number verified successfully.");
+        } catch (error) {
+            setOtpError(error instanceof Error ? error.message : "Something went wrong");
+        } finally {
+            setIsVerifyingOtp(false);
+        }
+    };
+
     const nextStep = () => {
+        if (step === 0 && !isPhoneVerified) {
+            alert("Please verify your phone number before continuing.");
+            return;
+        }
+
         if (step === 3) {
             if (!formData.idDocumentType) {
                 alert("Please select ID document type.");
@@ -120,6 +210,7 @@ export default function ProfessionalOnboardingForm() {
                 },
                 body: JSON.stringify({
                     ...formData,
+                    phone: normalizePhone(),
                     serviceAreas: formData.serviceAreas
                         .split(",")
                         .map((area) => area.trim())
@@ -345,11 +436,72 @@ export default function ProfessionalOnboardingForm() {
                                 onChange={(value) => updateField("email", value)}
                             />
 
-                            <Input
-                                label="Phone Number"
-                                value={formData.phone}
-                                onChange={(value) => updateField("phone", value)}
-                            />
+                            <div>
+                                <span className="mb-2 block text-sm font-medium text-[#d8d0c1]">
+                                    Phone Number
+                                </span>
+
+                                <div className="flex overflow-hidden rounded-2xl border border-[#2f291d] bg-[#111111] focus-within:border-[#d6ab5f]">
+                                    <select
+                                        value={countryCode}
+                                        onChange={(event) => {
+                                            setCountryCode(event.target.value);
+                                            setIsPhoneVerified(false);
+                                            setIsOtpSent(false);
+                                            setOtpCode("");
+                                            setOtpMessage("");
+                                            setOtpError("");
+                                        }}
+                                        className="border-r border-[#2f291d] bg-[#111111] px-4 text-sm text-white outline-none"
+                                    >
+                                        <option value="+1">🇺🇸 +1</option>
+                                        <option value="+91">🇮🇳 +91</option>
+                                        <option value="+44">🇬🇧 +44</option>
+                                        <option value="+971">🇦🇪 +971</option>
+                                    </select>
+
+                                    <input
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={(event) => updateField("phone", event.target.value)}
+                                        placeholder="6465300590"
+                                        className="w-full bg-transparent px-4 py-4 text-sm text-white outline-none placeholder:text-[#8f8778]"
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={sendOtp}
+                                        disabled={isSendingOtp || !formData.phone || isPhoneVerified}
+                                        className="min-w-[120px] border-l border-[#2f291d] px-4 text-sm font-medium text-[#e3bd74] transition hover:bg-[#151008] disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        {isSendingOtp ? "Sending..." : isPhoneVerified ? "Verified" : "Send OTP"}
+                                    </button>
+                                </div>
+
+                                {isOtpSent && !isPhoneVerified && (
+                                    <div className="mt-4 flex overflow-hidden rounded-2xl border border-[#2f291d] bg-[#111111] focus-within:border-[#d6ab5f]">
+                                        <input
+                                            type="text"
+                                            value={otpCode}
+                                            onChange={(event) => setOtpCode(event.target.value)}
+                                            placeholder="Enter OTP"
+                                            className="w-full bg-transparent px-4 py-4 text-sm text-white outline-none placeholder:text-[#8f8778]"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={verifyOtp}
+                                            disabled={isVerifyingOtp || !otpCode}
+                                            className="min-w-[120px] bg-[#d6ab5f] px-4 text-sm font-semibold text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {isVerifyingOtp ? "Verifying..." : "Verify"}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {otpMessage && <p className="mt-3 text-sm text-green-300">{otpMessage}</p>}
+                                {otpError && <p className="mt-3 text-sm text-red-300">{otpError}</p>}
+                            </div>
 
                             <Input
                                 label="Years of Experience"
@@ -526,7 +678,7 @@ export default function ProfessionalOnboardingForm() {
                                             {formData.fullName || "Cleaning Professional"}
                                         </h2>
                                         <p className="mt-1 text-sm text-[#cfc7b7]">{formData.email}</p>
-                                        <p className="mt-1 text-sm text-[#cfc7b7]">{formData.phone}</p>
+                                        <p className="mt-1 text-sm text-[#cfc7b7]">{normalizePhone()}</p>
                                     </div>
                                 </div>
                             </div>
@@ -616,7 +768,8 @@ export default function ProfessionalOnboardingForm() {
                             <button
                                 type="button"
                                 onClick={nextStep}
-                                className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02]"
+                                disabled={step === 0 && !isPhoneVerified}
+                                className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Continue
                             </button>
@@ -868,8 +1021,8 @@ function IdDocumentUpload({
 
             <label
                 className={`inline-flex w-full justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${isUploading
-                        ? "cursor-not-allowed bg-[#2a2419] text-[#7e7464]"
-                        : "cursor-pointer bg-[#d6ab5f] text-black hover:scale-[1.02]"
+                    ? "cursor-not-allowed bg-[#2a2419] text-[#7e7464]"
+                    : "cursor-pointer bg-[#d6ab5f] text-black hover:scale-[1.02]"
                     }`}
             >
                 {isUploading ? "Uploading..." : value ? "Replace File" : "Upload File"}

@@ -6,6 +6,11 @@ import {
   ProfessionalStatus,
 } from "@prisma/client";
 
+import {
+  sendSms,
+  getProfessionalApplicationReceivedSmsBody,
+} from "@/lib/twilio";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -57,6 +62,11 @@ export async function POST(req: Request) {
         idDocumentBackUrl: body.idDocumentBackUrl,
         idDocumentStatus: ProfessionalIdDocumentStatus.PENDING,
       },
+    });
+
+    await sendSms({
+      to: professional.phone,
+      body: getProfessionalApplicationReceivedSmsBody(),
     });
 
     return NextResponse.json({

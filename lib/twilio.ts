@@ -48,6 +48,10 @@ export function getBookingCreatedSmsBody({
   return `SoHo Cleaning Group: Cleaning has been booked for ${date} at ${time}. A professional will be assigned soon.`;
 }
 
+export function getProfessionalApplicationReceivedSmsBody() {
+  return "SoHo Cleaning Group: We have received your professional application. Our team will review your profile and documents and contact you shortly.";
+}
+
 export function getBookingStatusSmsBody(status: string) {
   const messages: Record<string, string> = {
     PENDING:
