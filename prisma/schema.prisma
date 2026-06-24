@@ -35,6 +35,7 @@ model Booking {
   bedrooms     Int?
   bathrooms    Int?
   kitchens     Int?
+  hasPets Boolean @default(false)
 
   preferredDate DateTime?
   preferredTime String?
@@ -55,6 +56,14 @@ model ProfessionalProfile {
   email           String  @unique
   phone           String
   profileImageUrl String?
+
+  idDocumentType ProfessionalIdDocumentType?
+  idDocumentFrontUrl String?
+  idDocumentBackUrl String?
+  idDocumentStatus ProfessionalIdDocumentStatus @default(PENDING)
+
+idDocumentReuploadToken String? @unique
+idDocumentReuploadExpiresAt DateTime?
 
   experienceYears Int?
   servicesOffered String[]
@@ -140,4 +149,15 @@ enum ProfessionalStatus {
   UNDER_REVIEW
   APPROVED
   REJECTED
+}
+
+enum ProfessionalIdDocumentType {
+  NATIONAL_ID
+  PASSPORT
+}
+
+enum ProfessionalIdDocumentStatus {
+  PENDING
+  APPROVED
+  REUPLOAD_REQUESTED
 }

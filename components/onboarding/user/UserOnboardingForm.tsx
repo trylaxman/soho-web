@@ -29,6 +29,7 @@ type FormData = {
     preferredDate: Date | null;
     preferredTime: string;
     specialNotes: string;
+    hasPets: boolean;
 };
 
 const initialData: FormData = {
@@ -50,9 +51,10 @@ const initialData: FormData = {
     preferredDate: null,
     preferredTime: "",
     specialNotes: "",
+    hasPets: false,
 };
 
-const steps = ["Personal", "Address", "Cleaning", "Schedule", "Review"];
+const steps = ["Service", "Personal", "Address", "Home Details", "Schedule", "Review"];
 
 const timeSlots = [
     { label: "8:00 AM - 10:00 AM", value: "08:00-10:00" },
@@ -60,6 +62,105 @@ const timeSlots = [
     { label: "12:00 PM - 2:00 PM", value: "12:00-14:00" },
     { label: "2:00 PM - 4:00 PM", value: "14:00-16:00" },
     { label: "4:00 PM - 6:00 PM", value: "16:00-18:00" },
+];
+
+const serviceOptions = [
+    {
+        label: "SoHo Signature",
+        value: "SOHO_SIGNATURE",
+        description:
+            "Ideal for regular home upkeep and maintaining a clean, polished living space.",
+        included: [
+            "Kitchen counters, sink, faucet, appliance exteriors, stovetop, cabinet fronts, trash removal, vacuum/mop floors.",
+            "Bathrooms: toilet, sink, vanity, shower/tub, mirrors, trash removal, floors cleaned.",
+            "Living areas and bedrooms: dusting, vacuuming, mopping, bed making if linens are left out, common surfaces wiped.",
+        ],
+        notIncluded: [
+            "Inside oven cleaning",
+            "Refrigerator interior cleaning",
+            "Interior windows",
+            "Laundry",
+            "Dishwashing",
+            "Organizing",
+            "Carpet shampooing",
+            "Post-construction cleanup",
+            "Hoarding-level cleanup",
+        ],
+        disclaimer:
+            "Residential cleaning only. We do not perform remediation, restoration, biohazard cleanup, pest-related cleanup, exterior window cleaning, heavy lifting, or work requiring specialty licensing.",
+    },
+    {
+        label: "SoHo Signature Deep",
+        value: "SOHO_SIGNATURE_DEEP",
+        description:
+            "A more detailed cleaning for homes needing extra attention beyond routine upkeep.",
+        included: [
+            "Everything included in SoHo Signature.",
+            "Baseboards, doors and frames, detailed dusting, shower glass detailing, light switches.",
+            "Kitchen grease/detail work and behind movable furniture when safe.",
+        ],
+        notIncluded: [
+            "Inside oven cleaning unless added on",
+            "Refrigerator interior cleaning unless added on",
+            "Interior windows unless added on",
+            "Laundry",
+            "Dishwashing",
+            "Organizing",
+            "Carpet shampooing",
+            "Post-construction cleanup",
+            "Hoarding-level cleanup",
+        ],
+        disclaimer:
+            "Residential cleaning only. We do not perform mold remediation, biohazard cleanup, pest infestation cleanup, heavy furniture moving, exterior window cleaning, unsafe ladder work, appliance repair, plumbing/electrical work, hazardous waste handling, or fire/smoke/water damage restoration.",
+    },
+    {
+        label: "Move In / Move Out",
+        value: "MOVE_IN_MOVE_OUT",
+        description:
+            "Designed for residential turnover preparation before moving in or after moving out.",
+        included: [
+            "Kitchen: inside/outside cabinets, refrigerator, oven, stovetop and hood detail, countertops sanitized, sink and faucet polished, backsplash cleaned, baseboards and floors cleaned.",
+            "Bathrooms: shower/tub detailing, toilet disinfected, vanity and drawers cleaned, mirrors polished, light buildup removal, cabinet interiors wiped, baseboards and floors cleaned.",
+            "Living areas and bedrooms: baseboards, window sills/tracks, closets, doors/frames, light switches/outlets, detailed dusting, floors, cobweb removal.",
+        ],
+        notIncluded: [
+            "Full wall washing",
+            "Ceiling washing",
+            "Exterior windows",
+            "Paint removal",
+            "Construction debris/heavy dust",
+            "Furniture moving",
+            "Carpet extraction/shampooing",
+            "Pest waste cleanup",
+            "Mold remediation",
+            "Hoarding cleanup",
+        ],
+        disclaimer:
+            "Move-in/move-out cleaning is intended for standard residential turnover preparation and does not include remediation, restoration, hazardous-material handling, or heavy debris removal.",
+    },
+    {
+        label: "Recurring Cleaning",
+        value: "RECURRING",
+        description:
+            "Weekly, bi-weekly, or monthly maintenance cleaning for consistent upkeep.",
+        included: [
+            "Based on the SoHo Signature cleaning scope.",
+            "Kitchen, bathroom, living area, and bedroom upkeep.",
+            "Designed for homes that are cleaned on an ongoing schedule.",
+        ],
+        notIncluded: [
+            "Deep cleaning tasks unless scheduled separately",
+            "Inside oven cleaning",
+            "Refrigerator interior cleaning",
+            "Interior windows",
+            "Laundry",
+            "Dishwashing",
+            "Organizing",
+            "Carpet shampooing",
+        ],
+        disclaimer:
+            "Recurring cleaning is intended for routine residential upkeep and does not include specialty cleaning, remediation, restoration, hazardous-material handling, or heavy lifting.",
+    },
 ];
 
 export default function UserOnboardingForm() {
@@ -85,6 +186,11 @@ export default function UserOnboardingForm() {
                 totalSqft: Number(formData.totalSqft),
             })
             : null;
+    const selectedService = serviceOptions.find(
+        (service) => service.value === formData.cleaningType
+    );
+
+    const isRecurringService = formData.cleaningType === "RECURRING";
 
     const updateField = (field: keyof FormData, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -99,9 +205,33 @@ export default function UserOnboardingForm() {
     };
 
     const nextStep = () => {
-        if (step === 0 && !isPhoneVerified) {
+        if (step === 0 && !formData.cleaningType) {
+            alert("Please select a cleaning service before continuing.");
+            return;
+        }
+
+        if (step === 1 && !isPhoneVerified) {
             alert("Please verify your phone number before continuing.");
             return;
+        }
+
+        if (step === 3) {
+            if (!formData.homeSize || !formData.totalSqft) {
+                alert("Please complete home size and total area.");
+                return;
+            }
+
+            if (isRecurringService && !formData.frequency) {
+                alert("Please select cleaning frequency.");
+                return;
+            }
+        }
+
+        if (step === 4) {
+            if (!formData.preferredDate || !formData.preferredTime) {
+                alert("Please select preferred date and time.");
+                return;
+            }
         }
 
         setStep((prev) => Math.min(prev + 1, steps.length - 1));
@@ -120,6 +250,7 @@ export default function UserOnboardingForm() {
                 body: JSON.stringify({
                     ...formData,
                     phone: normalizePhone(),
+                    frequency: isRecurringService ? formData.frequency : "ONE_TIME",
                     preferredDate: formData.preferredDate
                         ? formData.preferredDate.toISOString()
                         : null,
@@ -263,7 +394,7 @@ export default function UserOnboardingForm() {
                     </p>
                 </div>
 
-                <div className="mb-8 grid grid-cols-5 gap-3">
+                <div className="mb-8 grid grid-cols-6 gap-3">
                     {steps.map((item, index) => (
                         <div key={item}>
                             <div
@@ -282,6 +413,52 @@ export default function UserOnboardingForm() {
 
                 <div className="rounded-[32px] border border-[#2a2419] bg-[#0a0a0a] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.25)] sm:p-10">
                     {step === 0 && (
+                        <div className="grid gap-6">
+                            <div>
+                                <p className="mb-3 text-sm font-medium text-[#d8d0c1]">
+                                    Select Your Cleaning Service
+                                </p>
+
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    {serviceOptions.map((service) => {
+                                        const isSelected = formData.cleaningType === service.value;
+
+                                        return (
+                                            <button
+                                                key={service.value}
+                                                type="button"
+                                                onClick={() => updateField("cleaningType", service.value)}
+                                                className={`rounded-[24px] border p-5 text-left transition ${isSelected
+                                                    ? "border-[#d6ab5f] bg-[#151008] shadow-[0_18px_60px_rgba(214,171,95,0.12)]"
+                                                    : "border-[#2f291d] bg-[#111111] hover:border-[#8f6b2f]"
+                                                    }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div>
+                                                        <h2 className="font-serif text-2xl text-white">
+                                                            {service.label}
+                                                        </h2>
+                                                        <p className="mt-3 text-sm leading-7 text-[#cfc7b7]">
+                                                            {service.description}
+                                                        </p>
+                                                    </div>
+
+                                                    <span className="text-xl text-[#d6ab5f]">
+                                                        {isSelected ? "✓" : "○"}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {selectedService && (
+                                <ServiceDetailsCard service={selectedService} />
+                            )}
+                        </div>
+                    )}
+                    {step === 1 && (
                         <div className="grid gap-5">
                             <Input
                                 label="Full Name"
@@ -370,7 +547,7 @@ export default function UserOnboardingForm() {
                         </div>
                     )}
 
-                    {step === 1 && (
+                    {step === 2 && (
                         <div className="grid gap-5">
                             <Input
                                 label="Street Address"
@@ -406,20 +583,8 @@ export default function UserOnboardingForm() {
                         </div>
                     )}
 
-                    {step === 2 && (
+                    {step === 3 && (
                         <div className="grid gap-5">
-                            <Select
-                                label="Cleaning Type"
-                                value={formData.cleaningType}
-                                onChange={(value) => updateField("cleaningType", value)}
-                                options={[
-                                    { label: "SoHo Signature", value: "SOHO_SIGNATURE" },
-                                    { label: "SoHo Signature Deep", value: "SOHO_SIGNATURE_DEEP" },
-                                    { label: "Move In / Move Out", value: "MOVE_IN_MOVE_OUT" },
-                                    { label: "Recurring Cleaning", value: "RECURRING" },
-                                    { label: "Airbnb Turnover", value: "AIRBNB_TURNOVER" },
-                                ]}
-                            />
 
                             <Select
                                 label="Home Size"
@@ -463,17 +628,18 @@ export default function UserOnboardingForm() {
                                 />
                             </div>
 
-                            <Select
-                                label="Frequency"
-                                value={formData.frequency}
-                                onChange={(value) => updateField("frequency", value)}
-                                options={[
-                                    { label: "One Time", value: "ONE_TIME" },
-                                    { label: "Weekly", value: "WEEKLY" },
-                                    { label: "Bi-Weekly", value: "BI_WEEKLY" },
-                                    { label: "Monthly", value: "MONTHLY" },
-                                ]}
-                            />
+                            {isRecurringService && (
+                                <Select
+                                    label="Frequency"
+                                    value={formData.frequency}
+                                    onChange={(value) => updateField("frequency", value)}
+                                    options={[
+                                        { label: "Weekly", value: "WEEKLY" },
+                                        { label: "Bi-Weekly", value: "BI_WEEKLY" },
+                                        { label: "Monthly", value: "MONTHLY" },
+                                    ]}
+                                />
+                            )}
 
                             {pricing && (
                                 <div className="rounded-[24px] border border-[#3a2812] bg-[#0c0a07] p-5">
@@ -496,7 +662,7 @@ export default function UserOnboardingForm() {
                         </div>
                     )}
 
-                    {step === 3 && (
+                    {step === 4 && (
                         <div className="grid gap-5">
                             <div className="grid gap-5 md:grid-cols-2">
                                 <DatePickerField
@@ -518,6 +684,23 @@ export default function UserOnboardingForm() {
                                 />
                             </div>
 
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        hasPets: !prev.hasPets,
+                                    }))
+                                }
+                                className={`rounded-2xl border px-5 py-4 text-left text-sm transition ${formData.hasPets
+                                    ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                    : "border-[#2f291d] bg-[#111111] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                    }`}
+                            >
+                                <span className="mr-2">{formData.hasPets ? "✓" : "○"}</span>
+                                Do you have pets?
+                            </button>
+
                             <Textarea
                                 label="Special Notes"
                                 value={formData.specialNotes}
@@ -526,7 +709,7 @@ export default function UserOnboardingForm() {
                         </div>
                     )}
 
-                    {step === 4 && (
+                    {step === 5 && (
                         <div className="grid gap-6">
                             <div className="rounded-[28px] border border-[#2f291d] bg-[#111111] p-6">
                                 <h2 className="font-serif text-3xl text-white">
@@ -540,6 +723,22 @@ export default function UserOnboardingForm() {
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2">
+                                <CompactReviewItem
+                                    label="Service"
+                                    value={selectedService?.label || "Not selected"}
+                                />
+                                {isRecurringService && (
+                                    <CompactReviewItem
+                                        label="Frequency"
+                                        value={
+                                            formData.frequency === "BI_WEEKLY"
+                                                ? "Bi-Weekly"
+                                                : formData.frequency === "WEEKLY"
+                                                    ? "Weekly"
+                                                    : "Monthly"
+                                        }
+                                    />
+                                )}
                                 <CompactReviewItem label="Name" value={formData.fullName} />
                                 <CompactReviewItem label="Email" value={formData.email} />
                                 <CompactReviewItem label="Phone" value={normalizePhone()} />
@@ -557,6 +756,10 @@ export default function UserOnboardingForm() {
                                         ? formData.preferredDate.toDateString()
                                         : "Not selected"
                                         } · ${formData.preferredTime || "No time selected"}`}
+                                />
+                                <CompactReviewItem
+                                    label="Pets"
+                                    value={formData.hasPets ? "Yes" : "No"}
                                 />
                             </div>
 
@@ -643,7 +846,10 @@ export default function UserOnboardingForm() {
                             <button
                                 type="button"
                                 onClick={nextStep}
-                                disabled={step === 0 && !isPhoneVerified}
+                                disabled={
+                                    (step === 0 && !formData.cleaningType) ||
+                                    (step === 1 && !isPhoneVerified)
+                                }
                                 className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Continue
@@ -807,6 +1013,101 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
             </span>
 
             <span className="text-base text-[#f1e7d7]">{value}</span>
+        </div>
+    );
+}
+
+function ServiceDetailsCard({
+    service,
+}: {
+    service: {
+        label: string;
+        value: string;
+        description: string;
+        included: string[];
+        notIncluded: string[];
+        disclaimer: string;
+    };
+}) {
+    return (
+        <div className="overflow-hidden rounded-[28px] border border-[#8f6b2f] bg-[#0c0a07]">
+            <div className="border-b border-[#3a2812] px-6 py-5">
+                <p className="text-xs uppercase tracking-[0.24em] text-[#b7924c]">
+                    Service Details
+                </p>
+                <h3 className="mt-2 font-serif text-3xl text-white">
+                    {service.label}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-[#cfc7b7]">
+                    {service.description}
+                </p>
+            </div>
+
+            <div className="grid gap-6 p-6 md:grid-cols-2">
+                <div>
+                    <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-[#d6ab5f]">
+                        What’s Included
+                    </h4>
+                    <div className="grid gap-3">
+                        {service.included.map((item) => (
+                            <div
+                                key={item}
+                                className="rounded-2xl border border-[#2f291d] bg-[#111111] p-4 text-sm leading-7 text-[#f3eadb]"
+                            >
+                                <span className="mr-2 text-[#d6ab5f]">✓</span>
+                                {item}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
+                    <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-[#d6ab5f]">
+                        Usually Not Included
+                    </h4>
+                    <div className="grid gap-2">
+                        {service.notIncluded.map((item) => (
+                            <div
+                                key={item}
+                                className="rounded-xl border border-[#2f291d] bg-[#111111] px-4 py-3 text-sm text-[#cfc7b7]"
+                            >
+                                {item}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t border-[#3a2812] bg-[#111111] px-6 py-5">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#8f8778]">
+                    Disclaimer
+                </p>
+                <p className="mt-2 text-sm leading-7 text-[#cfc7b7]">
+                    {service.disclaimer}
+                </p>
+            </div>
+            <div className="border-t border-[#3a2812] px-6 py-5">
+                <p className="text-sm font-medium text-[#d6ab5f]">
+                    Selected Service: {service.label} ✓
+                </p>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {[
+                        "Fully insured and bonded",
+                        "Background-checked professionals",
+                        "Professionally registered business",
+                        "Premium Manhattan service standards",
+                    ].map((point) => (
+                        <div
+                            key={point}
+                            className="rounded-2xl border border-[#2f291d] bg-[#111111] px-4 py-3 text-sm text-[#f3eadb]"
+                        >
+                            <span className="mr-2 text-[#d6ab5f]">✓</span>
+                            {point}
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }

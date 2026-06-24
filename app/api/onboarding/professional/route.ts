@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ProfessionalStatus } from "@prisma/client";
+import {
+  ProfessionalIdDocumentStatus,
+  ProfessionalIdDocumentType,
+  ProfessionalStatus,
+} from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -24,6 +28,13 @@ export async function POST(req: Request) {
         hasTransport: Boolean(body.hasTransport),
         bio: body.bio,
         status: ProfessionalStatus.PENDING,
+
+        idDocumentType: body.idDocumentType as ProfessionalIdDocumentType,
+        idDocumentFrontUrl: body.idDocumentFrontUrl,
+        idDocumentBackUrl: body.idDocumentBackUrl,
+        idDocumentStatus: ProfessionalIdDocumentStatus.PENDING,
+        idDocumentReuploadToken: null,
+        idDocumentReuploadExpiresAt: null,
       },
       create: {
         fullName: body.fullName,
@@ -40,6 +51,11 @@ export async function POST(req: Request) {
         hasTransport: Boolean(body.hasTransport),
         bio: body.bio,
         status: ProfessionalStatus.PENDING,
+
+        idDocumentType: body.idDocumentType as ProfessionalIdDocumentType,
+        idDocumentFrontUrl: body.idDocumentFrontUrl,
+        idDocumentBackUrl: body.idDocumentBackUrl,
+        idDocumentStatus: ProfessionalIdDocumentStatus.PENDING,
       },
     });
 
@@ -54,7 +70,8 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: false,
-        message: "Something went wrong while submitting professional onboarding.",
+        message:
+          "Something went wrong while submitting professional onboarding.",
       },
       { status: 500 }
     );

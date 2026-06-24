@@ -99,6 +99,10 @@ export async function POST(req: Request) {
       },
     });
 
+    console.log("STRIPE_METADATA_HAS_PETS", {
+      hasPets: metadata.hasPets,
+      allMetadata: metadata,
+    });
     const booking = await prisma.booking.create({
       data: {
         userProfileId: user.id,
@@ -108,6 +112,7 @@ export async function POST(req: Request) {
         bedrooms: metadata.bedrooms ? Number(metadata.bedrooms) : null,
         bathrooms: metadata.bathrooms ? Number(metadata.bathrooms) : null,
         kitchens: metadata.kitchens ? Number(metadata.kitchens) : null,
+        hasPets: metadata.hasPets === "true",
 
         preferredDate: metadata.preferredDate
           ? new Date(metadata.preferredDate)

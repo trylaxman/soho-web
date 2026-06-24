@@ -14,14 +14,14 @@ const email = "info@sohocleaninggroup.com";
 
 const services = [
   {
-    title: "Standard Cleaning",
+    title: "SoHo Signature Cleaning",
     description:
       "Perfect for regular upkeep and keeping your home spotless week after week.",
     image: "/images/home/service-standard.jpg",
     icon: "⌂",
   },
   {
-    title: "Deep Cleaning",
+    title: "SoHo Signature Deep Cleaning",
     description:
       "A detailed, top-to-bottom clean for a fresher, healthier living space.",
     image: "/images/home/service-deep.jpg",
@@ -132,6 +132,7 @@ function Header() {
     { label: "Home", href: "#home" },
     { label: "Services", href: "#services" },
     { label: "About", href: "#about" },
+    { label: "Our Story", href: "/our-story" },
     { label: "Reviews", href: "#reviews" },
     { label: "Book", href: "/onboarding/user" },
   ];
@@ -536,7 +537,20 @@ function BottomInfoSection() {
             My apartment has never looked better.”
           </p>
 
-          <p className="mt-5 text-sm text-[#d6ab5f]">— Sarah M., Tribeca</p>
+          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[#d6ab5f]">
+              — Sarah M., Tribeca
+            </p>
+
+            <a
+              href="#REPLACE_WITH_GOOGLE_REVIEW_LINK"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl border border-[#a8792f] bg-[#151008] px-5 py-3 text-sm font-semibold text-[#e7c176] transition hover:border-[#d6ab5f] hover:bg-[#1c1409]"
+            >
+              Write a Review →
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -582,6 +596,22 @@ function BookingCTASection() {
 }
 
 function Footer() {
+  const quickLinks = [
+    { label: "Home", href: "#home" },
+    { label: "Services", href: "#services" },
+    { label: "About", href: "#about" },
+    { label: "Our Story", href: "/our-story" },
+    { label: "Reviews", href: "#reviews" },
+    { label: "Terms & Conditions", href: "/terms-and-conditions" }
+  ];
+
+  const serviceLinks = [
+    { label: "SoHo Signature", href: "/onboarding/user" },
+    { label: "SoHo Signature Deep", href: "/onboarding/user" },
+    { label: "Move In / Move Out", href: "/onboarding/user" },
+    { label: "Recurring Cleaning", href: "/onboarding/user" },
+  ];
+
   return (
     <footer className="border-t border-[#3a2812] bg-black pb-24 md:pb-0">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
@@ -600,20 +630,9 @@ function Footer() {
           </p>
         </div>
 
-        <FooterColumn
-          title="Quick Links"
-          items={["Home", "Services", "About", "Reviews", "Book Cleaning"]}
-        />
+        <FooterColumn title="Quick Links" items={quickLinks} />
 
-        <FooterColumn
-          title="Services"
-          items={[
-            "Standard Cleaning",
-            "Deep Cleaning",
-            "Move In / Move Out",
-            "Recurring Cleaning",
-          ]}
-        />
+        <FooterColumn title="Services" items={serviceLinks} />
 
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[#d8b066]">
@@ -642,7 +661,13 @@ function Footer() {
   );
 }
 
-function FooterColumn({ title, items }: { title: string; items: string[] }) {
+function FooterColumn({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ label: string; href: string }>;
+}) {
   return (
     <div>
       <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[#d8b066]">
@@ -651,7 +676,13 @@ function FooterColumn({ title, items }: { title: string; items: string[] }) {
 
       <div className="mt-5 space-y-3 text-sm text-[#d8d0c1]">
         {items.map((item) => (
-          <p key={item}>{item}</p>
+          <Link
+            key={item.label}
+            href={item.href}
+            className="block transition hover:text-[#e3bd74]"
+          >
+            {item.label}
+          </Link>
         ))}
       </div>
     </div>

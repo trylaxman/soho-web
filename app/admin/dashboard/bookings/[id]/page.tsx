@@ -84,6 +84,7 @@ export default async function BookingDetailPage({
                                 ["Bedrooms", String(booking.bedrooms ?? 0)],
                                 ["Bathrooms", String(booking.bathrooms ?? 0)],
                                 ["Kitchen", String(booking.kitchens ?? 0)],
+                                ["Pets", booking.hasPets ? "Yes" : "No"],
                                 ["Frequency", formatLabel(booking.frequency)],
                             ]}
                         />

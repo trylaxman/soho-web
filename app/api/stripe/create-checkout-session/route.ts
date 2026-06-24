@@ -54,6 +54,7 @@ export async function POST(req: Request) {
         frequency: body.frequency || "",
         preferredDate: body.preferredDate || "",
         preferredTime: body.preferredTime || "",
+        hasPets: body.hasPets === true ? "true" : "false",
         specialNotes: body.specialNotes || "",
         calculatedTotal: String(pricing.total),
       },

@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 
+type IdDocumentType = "NATIONAL_ID" | "PASSPORT" | "";
+
 type FormData = {
     fullName: string;
     email: string;
@@ -17,6 +19,10 @@ type FormData = {
     hasOwnSupplies: boolean;
     hasTransport: boolean;
     bio: string;
+
+    idDocumentType: IdDocumentType;
+    idDocumentFrontUrl: string;
+    idDocumentBackUrl: string;
 };
 
 const initialData: FormData = {
@@ -31,13 +37,17 @@ const initialData: FormData = {
     hasOwnSupplies: false,
     hasTransport: false,
     bio: "",
+
+    idDocumentType: "",
+    idDocumentFrontUrl: "",
+    idDocumentBackUrl: "",
 };
 
-const steps = ["Personal", "Services", "Availability", "Review"];
+const steps = ["Personal", "Services", "Availability", "ID Document", "Review"];
 
 const serviceOptions = [
-    "STANDARD",
-    "DEEP",
+    "SOHO_SIGNATURE",
+    "SOHO_SIGNATURE_DEEP",
     "MOVE_IN_MOVE_OUT",
     "RECURRING",
     "AIRBNB_TURNOVER",
@@ -59,6 +69,8 @@ export default function ProfessionalOnboardingForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+    const [isUploadingIdFront, setIsUploadingIdFront] = useState(false);
+    const [isUploadingIdBack, setIsUploadingIdBack] = useState(false);
 
     const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -80,7 +92,21 @@ export default function ProfessionalOnboardingForm() {
         });
     };
 
-    const nextStep = () => setStep((prev) => Math.min(prev + 1, steps.length - 1));
+    const nextStep = () => {
+        if (step === 3) {
+            if (!formData.idDocumentType) {
+                alert("Please select ID document type.");
+                return;
+            }
+
+            if (!formData.idDocumentFrontUrl || !formData.idDocumentBackUrl) {
+                alert("Please upload both required ID document files.");
+                return;
+            }
+        }
+
+        setStep((prev) => Math.min(prev + 1, steps.length - 1));
+    };
     const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
 
     const submitForm = async () => {
@@ -152,6 +178,76 @@ export default function ProfessionalOnboardingForm() {
         }
     };
 
+    const uploadIdDocument = async (
+        file: File,
+        side: "front" | "back"
+    ) => {
+        try {
+            const allowedTypes = [
+                "application/pdf",
+                "image/png",
+                "image/jpeg",
+                "image/jpg",
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Only PDF, PNG, JPEG, and JPG files are allowed.");
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert("File size must be less than 2MB.");
+                return;
+            }
+
+            if (side === "front") {
+                setIsUploadingIdFront(true);
+            } else {
+                setIsUploadingIdBack(true);
+            }
+
+            const fileExt = file.name.split(".").pop();
+            const fileName = `${Date.now()}-${Math.random()
+                .toString(36)
+                .substring(2)}.${fileExt}`;
+
+            const folder = formData.email
+                ? formData.email.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()
+                : "pending";
+
+            const filePath = `${folder}/${side}-${fileName}`;
+
+            const { error } = await supabase.storage
+                .from("professional-documents")
+                .upload(filePath, file, {
+                    cacheControl: "3600",
+                    upsert: false,
+                });
+
+            if (error) {
+                console.error(error);
+                alert("Document upload failed. Please try again.");
+                return;
+            }
+
+            const { data } = supabase.storage
+                .from("professional-documents")
+                .getPublicUrl(filePath);
+
+            if (side === "front") {
+                updateField("idDocumentFrontUrl", data.publicUrl);
+            } else {
+                updateField("idDocumentBackUrl", data.publicUrl);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Document upload failed. Please try again.");
+        } finally {
+            setIsUploadingIdFront(false);
+            setIsUploadingIdBack(false);
+        }
+    };
+
     if (isSuccess) {
         return (
             <main className="min-h-screen bg-[#060606] px-4 py-10 text-white">
@@ -211,7 +307,7 @@ export default function ProfessionalOnboardingForm() {
                     </p>
                 </div>
 
-                <div className="mb-8 grid grid-cols-4 gap-3">
+                <div className="mb-8 grid grid-cols-5 gap-3">
                     {steps.map((item, index) => (
                         <div key={item}>
                             <div
@@ -338,6 +434,70 @@ export default function ProfessionalOnboardingForm() {
 
                     {step === 3 && (
                         <div className="grid gap-6">
+                            <div>
+                                <p className="mb-3 text-sm font-medium text-[#d8d0c1]">
+                                    Select ID Document Type
+                                </p>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <CheckboxCard
+                                        label="National ID"
+                                        checked={formData.idDocumentType === "NATIONAL_ID"}
+                                        onClick={() => {
+                                            updateField("idDocumentType", "NATIONAL_ID");
+                                            updateField("idDocumentFrontUrl", "");
+                                            updateField("idDocumentBackUrl", "");
+                                        }}
+                                    />
+
+                                    <CheckboxCard
+                                        label="Passport"
+                                        checked={formData.idDocumentType === "PASSPORT"}
+                                        onClick={() => {
+                                            updateField("idDocumentType", "PASSPORT");
+                                            updateField("idDocumentFrontUrl", "");
+                                            updateField("idDocumentBackUrl", "");
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {formData.idDocumentType && (
+                                <div className="grid gap-5 md:grid-cols-2">
+                                    <IdDocumentUpload
+                                        label={
+                                            formData.idDocumentType === "PASSPORT"
+                                                ? "Passport First Page"
+                                                : "National ID Front Side"
+                                        }
+                                        value={formData.idDocumentFrontUrl}
+                                        isUploading={isUploadingIdFront}
+                                        onChange={(file) => uploadIdDocument(file, "front")}
+                                    />
+
+                                    <IdDocumentUpload
+                                        label={
+                                            formData.idDocumentType === "PASSPORT"
+                                                ? "Passport Last Page"
+                                                : "National ID Back Side"
+                                        }
+                                        value={formData.idDocumentBackUrl}
+                                        isUploading={isUploadingIdBack}
+                                        onChange={(file) => uploadIdDocument(file, "back")}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="rounded-[22px] border border-[#2f291d] bg-[#111111] p-5">
+                                <p className="text-sm leading-7 text-[#cfc7b7]">
+                                    Accepted files: PDF, PNG, JPG, JPEG. Maximum file size: 2MB per file.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 4 && (
+                        <div className="grid gap-6">
                             <div className="rounded-[28px] border border-[#2f291d] bg-[#111111] p-6">
                                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                                     <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#8f6b2f] bg-[#151008] font-serif text-3xl text-[#d6ab5f]">
@@ -403,6 +563,22 @@ export default function ProfessionalOnboardingForm() {
                                 <CompactReviewItem
                                     label="Transportation"
                                     value={formData.hasTransport ? "Yes" : "No"}
+                                />
+                                <CompactReviewItem
+                                    label="ID Document Type"
+                                    value={
+                                        formData.idDocumentType
+                                            ? formatLabel(formData.idDocumentType)
+                                            : "Not selected"
+                                    }
+                                />
+                                <CompactReviewItem
+                                    label="ID Documents"
+                                    value={
+                                        formData.idDocumentFrontUrl && formData.idDocumentBackUrl
+                                            ? "Uploaded"
+                                            : "Missing"
+                                    }
                                 />
                             </div>
 
@@ -639,6 +815,77 @@ function ProfileImageUpload({
             <p className="mt-3 text-xs text-[#8f8778]">
                 Upload a clear photo. JPG or PNG recommended.
             </p>
+        </div>
+    );
+}
+
+function IdDocumentUpload({
+    label,
+    value,
+    isUploading,
+    onChange,
+}: {
+    label: string;
+    value: string;
+    isUploading: boolean;
+    onChange: (file: File) => void;
+}) {
+    const isPdf = value.toLowerCase().includes(".pdf");
+
+    return (
+        <div className="rounded-[28px] border border-[#2f291d] bg-[#111111] p-5">
+            <p className="mb-3 text-sm font-medium text-[#d8d0c1]">{label}</p>
+
+            <div className="mb-4 flex min-h-[180px] items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#3a2812] bg-[#0a0a0a]">
+                {value ? (
+                    isPdf ? (
+                        <div className="text-center">
+                            <p className="text-4xl text-[#d6ab5f]">PDF</p>
+                            <a
+                                href={value}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-3 inline-flex text-sm text-[#e3bd74] underline"
+                            >
+                                Preview PDF
+                            </a>
+                        </div>
+                    ) : (
+                        <Image
+                            src={value}
+                            alt={label}
+                            width={420}
+                            height={260}
+                            className="max-h-[260px] w-full object-contain"
+                        />
+                    )
+                ) : (
+                    <p className="px-6 text-center text-sm leading-7 text-[#8f8778]">
+                        No file uploaded yet.
+                    </p>
+                )}
+            </div>
+
+            <label
+                className={`inline-flex w-full justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition ${isUploading
+                        ? "cursor-not-allowed bg-[#2a2419] text-[#7e7464]"
+                        : "cursor-pointer bg-[#d6ab5f] text-black hover:scale-[1.02]"
+                    }`}
+            >
+                {isUploading ? "Uploading..." : value ? "Replace File" : "Upload File"}
+
+                <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                    disabled={isUploading}
+                    className="hidden"
+                    onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) onChange(file);
+                        event.target.value = "";
+                    }}
+                />
+            </label>
         </div>
     );
 }
