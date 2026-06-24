@@ -602,7 +602,6 @@ function Footer() {
     { label: "About", href: "#about" },
     { label: "Our Story", href: "/our-story" },
     { label: "Reviews", href: "#reviews" },
-    { label: "Terms & Conditions", href: "/terms-and-conditions" }
   ];
 
   const serviceLinks = [
@@ -612,9 +611,15 @@ function Footer() {
     { label: "Recurring Cleaning", href: "/onboarding/user" },
   ];
 
+  const policyLinks = [
+  { label: "Terms & Conditions", href: "/terms-and-conditions" },
+  { label: "Refund Policy", href: "/refund-policy" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
+];
+
   return (
     <footer className="border-t border-[#3a2812] bg-black pb-24 md:pb-0">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-5 lg:px-8">
         <div>
           <Image
             src="/images/soho-logo-n.png"
@@ -633,6 +638,8 @@ function Footer() {
         <FooterColumn title="Quick Links" items={quickLinks} />
 
         <FooterColumn title="Services" items={serviceLinks} />
+
+        <FooterColumn title="Policies" items={policyLinks} />
 
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[#d8b066]">
