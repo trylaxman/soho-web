@@ -33,8 +33,12 @@ export default function TermsAndConditionsPage() {
 
           <Section title="4. Access to Property">
             Customers must ensure safe and timely access to the property. If our
-            team cannot access the property at the scheduled time, the booking
-            may be delayed, rescheduled, or subject to cancellation.
+            cleaning team is unable to access the property within 20 minutes of
+            arrival due to missing keys, no response, building restrictions,
+            doorman issues, elevator delays, or other access-related issues, a
+            lockout fee or cancellation fee may apply. If our team is already en
+            route or onsite and access cannot be provided, the full booking
+            amount is non-refundable.
           </Section>
 
           <Section title="5. Service Limitations">
@@ -45,41 +49,84 @@ export default function TermsAndConditionsPage() {
             handling.
           </Section>
 
-          <Section title="6. Pets">
+          <Section title="6. Heavy Soil or Extreme Conditions">
+            Pricing assumes normal residential conditions. Excessive buildup,
+            clutter, heavy soil, post-construction debris, or unsafe conditions
+            may require additional charges or service refusal.
+          </Section>
+
+          <Section title="7. Pets">
             Customers must disclose whether pets are present in the home. Pets
             should be safely secured during the cleaning visit for the safety of
             both the cleaning professional and the pet.
           </Section>
 
-          <Section title="7. Cancellations and Rescheduling">
-            Cancellation and rescheduling requests should be made as early as
-            possible. SoHo Cleaning Group reserves the right to apply
-            cancellation or rescheduling fees where appropriate.
+          <Section title="8. Cleaning Products & Equipment">
+            SoHo Cleaning Group arrives fully equipped with professional-grade
+            cleaning supplies and equipment needed to complete your service. If
+            you prefer that we use your cleaning products, specialty tools, or
+            surface-specific products, please let us know before your scheduled
+            appointment. We will do our best to accommodate your request when
+            possible.
           </Section>
 
-          <Section title="8. Liability">
+          <Section title="9. Client-Provided Products or Equipment">
+            When client-provided products or equipment are used, SoHo Cleaning
+            Group is not responsible for product performance, equipment
+            malfunction, surface reactions, or cleaning results affected by
+            those items.
+          </Section>
+
+          <Section title="10. Cancellations and Rescheduling">
+            Cancellation and rescheduling requests should be made as early as
+            possible. Cancellations made 48 or more hours before the scheduled
+            service may be cancelled with no fee. Cancellations made 24 to 48
+            hours before service may be subject to a 25% fee. Cancellations made
+            less than 24 hours before service may be subject to a 50% fee.
+            Same-day cancellations, no-shows, or lockouts may be charged the
+            full booking amount.
+          </Section>
+
+          <Section title="11. Satisfaction Guarantee / Re-Clean Policy">
+            Any service concerns must be reported within 24 hours of service
+            completion. SoHo Cleaning Group may offer a re-clean at its
+            discretion. Refunds are not guaranteed.
+          </Section>
+
+          <Section title="12. Damage Claims">
+            Damage claims must be reported within 24 hours of service completion
+            with supporting photos. Claims submitted after this period may not
+            be eligible for review.
+          </Section>
+
+          <Section title="13. Photo Documentation">
+            SoHo Cleaning Group may document property conditions with
+            before-and-after photos for quality assurance, training, and dispute
+            resolution.
+          </Section>
+
+          <Section title="14. Liability">
             SoHo Cleaning Group takes reasonable care while performing services.
             Customers must report any concerns promptly. We are not responsible
-            for pre-existing damage, fragile items not disclosed in advance, or
-            unsafe working conditions.
+            for pre-existing damage, fragile items not disclosed in advance,
+            unsafe working conditions, or issues caused by client-provided
+            products or equipment.
           </Section>
 
-          <Section title="9. Professional Conduct">
+          <Section title="15. Professional Conduct">
             Our cleaning professionals are expected to follow company standards,
             respect customer privacy, and perform services with care,
             discretion, and professionalism.
           </Section>
 
-          <Section title="10. Changes to Terms">
+          <Section title="16. Changes to Terms">
             SoHo Cleaning Group may update these Terms and Conditions from time
             to time. Continued use of our services means you accept the updated
             terms.
           </Section>
 
           <div className="border-t border-[#2a2419] pt-8">
-            <p className="text-xs text-[#8f8778]">
-              Last updated: 2026
-            </p>
+            <p className="text-xs text-[#8f8778]">Last updated: 2026</p>
 
             <Link
               href="/"
