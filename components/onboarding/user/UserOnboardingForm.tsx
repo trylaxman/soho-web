@@ -30,6 +30,7 @@ type FormData = {
     preferredTime: string;
     specialNotes: string;
     hasPets: boolean;
+    acceptedPolicies: boolean;
 };
 
 const initialData: FormData = {
@@ -52,6 +53,7 @@ const initialData: FormData = {
     preferredTime: "",
     specialNotes: "",
     hasPets: false,
+    acceptedPolicies: false,
 };
 
 const steps = ["Service", "Personal", "Address", "Home Details", "Schedule", "Review"];
@@ -192,7 +194,7 @@ export default function UserOnboardingForm() {
 
     const isRecurringService = formData.cleaningType === "RECURRING";
 
-    const updateField = (field: keyof FormData, value: string) => {
+    const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
 
         if (field === "phone") {
@@ -205,9 +207,16 @@ export default function UserOnboardingForm() {
     };
 
     const nextStep = () => {
-        if (step === 0 && !formData.cleaningType) {
-            alert("Please select a cleaning service before continuing.");
-            return;
+        if (step === 0) {
+            if (!formData.cleaningType) {
+                alert("Please select a cleaning service before continuing.");
+                return;
+            }
+
+            if (!formData.acceptedPolicies) {
+                alert("Please review and accept our policies before continuing.");
+                return;
+            }
         }
 
         if (step === 1 && !isPhoneVerified) {
@@ -454,7 +463,65 @@ export default function UserOnboardingForm() {
                             </div>
 
                             {selectedService && (
-                                <ServiceDetailsCard service={selectedService} />
+                                <>
+                                    <ServiceDetailsCard service={selectedService} />
+
+                                    <div className="rounded-[24px] border border-[#3a2812] bg-[#111111] p-5">
+                                        <p className="text-sm leading-7 text-[#d8d0c1]">
+                                            Before requesting a booking, please review our policies. By continuing,
+                                            you acknowledge that you have read and agree to our{" "}
+                                            <a
+                                                href="/terms-and-conditions"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-medium text-[#d6ab5f] underline-offset-4 hover:underline"
+                                            >
+                                                Terms & Conditions
+                                            </a>
+                                            ,{" "}
+                                            <a
+                                                href="/privacy-policy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-medium text-[#d6ab5f] underline-offset-4 hover:underline"
+                                            >
+                                                Privacy Policy
+                                            </a>{" "}
+                                            and{" "}
+                                            <a
+                                                href="/refund-policy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-medium text-[#d6ab5f] underline-offset-4 hover:underline"
+                                            >
+                                                Refund Policy
+                                            </a>
+                                            .
+                                        </p>
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    acceptedPolicies: !prev.acceptedPolicies,
+                                                }))
+                                            }
+                                            className={`mt-5 flex w-full items-start gap-3 rounded-2xl border px-5 py-4 text-left text-sm transition ${formData.acceptedPolicies
+                                                ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                                : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                                }`}
+                                        >
+                                            <span className="mt-0.5">
+                                                {formData.acceptedPolicies ? "✓" : "○"}
+                                            </span>
+
+                                            <span>
+                                                I agree to the Terms & Conditions, Privacy Policy, and Refund Policy.
+                                            </span>
+                                        </button>
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
@@ -847,7 +914,7 @@ export default function UserOnboardingForm() {
                                 type="button"
                                 onClick={nextStep}
                                 disabled={
-                                    (step === 0 && !formData.cleaningType) ||
+                                    (step === 0 && (!formData.cleaningType || !formData.acceptedPolicies)) ||
                                     (step === 1 && !isPhoneVerified)
                                 }
                                 className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
