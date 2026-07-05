@@ -1,5 +1,50 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title:
+    "Our Story | SoHo Cleaning Group - Built on Trust & Premium Home Care",
+
+  description:
+    "Meet the people behind SoHo Cleaning Group. A premium New York cleaning company built around trust, accountability, and carefully selected cleaning professionals.",
+
+  openGraph: {
+    title:
+      "A Clean Home Matters. Knowing Who You Let Into It Matters Even More.",
+
+    description:
+      "We built SoHo Cleaning Group around one simple idea — trust comes first. Meet the people behind your premium home cleaning experience.",
+
+    url: "https://sohocleaninggroup.com/our-story",
+
+    siteName: "SoHo Cleaning Group",
+
+    images: [
+      {
+        url: "/images/og/our-story.png",
+        width: 1200,
+        height: 630,
+        alt: "SoHo Cleaning Group Founders",
+      },
+    ],
+
+    locale: "en_US",
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+
+    title:
+      "Meet the People Behind SoHo Cleaning Group",
+
+    description:
+      "Premium cleaning built on trust, accountability, and personal relationships.",
+
+    images: ["/images/og/our-story.png"],
+  },
+};
 
 const trustPoints = [
   "Professionally registered business",

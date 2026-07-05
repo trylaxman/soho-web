@@ -3,9 +3,58 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "SoHo Cleaning Group | Book Premium Cleaning in Manhattan",
+  title:
+    "SoHo Cleaning Group | Premium Home Cleaning Services in Manhattan",
+
   description:
-    "Book premium home and apartment cleaning in Manhattan with SoHo Cleaning Group. Choose your service, schedule online, and complete secure checkout.",
+    "Experience premium apartment and home cleaning in Manhattan with SoHo Cleaning Group. Trusted professionals, luxury service standards, easy online booking, and secure checkout.",
+
+  keywords: [
+    "Manhattan cleaning service",
+    "NYC apartment cleaning",
+    "luxury home cleaning Manhattan",
+    "professional cleaners New York",
+    "SoHo Cleaning Group",
+    "deep cleaning Manhattan",
+    "move in move out cleaning NYC",
+    "recurring home cleaning",
+  ],
+
+  openGraph: {
+    title:
+      "Premium Home Cleaning Services in Manhattan | SoHo Cleaning Group",
+
+    description:
+      "Luxury-level cleaning delivered by trusted professionals. Book your Manhattan home cleaning experience online with confidence.",
+
+    url: "https://sohocleaninggroup.com",
+
+    siteName: "SoHo Cleaning Group",
+
+    images: [
+      {
+        url: "/images/og/home.png",
+        width: 1200,
+        height: 630,
+        alt: "SoHo Cleaning Group Premium Manhattan Cleaning Service",
+      },
+    ],
+
+    locale: "en_US",
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+
+    title:
+      "SoHo Cleaning Group | Premium Manhattan Cleaning",
+
+    description:
+      "Professional home cleaning built around trust, quality, and premium service standards.",
+
+    images: ["/images/og/home.png"],
+  },
 };
 
 const phoneNumber = "+1 (646) 530-0590";
