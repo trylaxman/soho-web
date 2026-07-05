@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const trustPoints = [
@@ -17,8 +18,8 @@ export default function OurStoryPage() {
             Our Story
           </p>
 
-          <h1 className="mx-auto max-w-4xl font-serif text-4xl leading-tight text-white sm:text-6xl">
-            A Clean Home Matters. Knowing Who You Let Into It Matters Even More.
+          <h1 className="mx-auto max-w-3xl font-serif text-4xl leading-tight text-white sm:text-6xl">
+            A Clean Home Matters. <br/> Knowing Who You Let Into It Matters Even More.
           </h1>
         </div>
 
@@ -62,26 +63,80 @@ export default function OurStoryPage() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="border-t border-[#2a2419] bg-[#0c0a07] p-8 sm:p-12 lg:border-l lg:border-t-0">
-              <div className="sticky top-8 rounded-[28px] border border-[#8f6b2f]/50 bg-[#111111] p-7">
+              <div className="rounded-[28px] border border-[#8f6b2f]/40 bg-[#111111] p-7">
                 <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#b7924c]">
-                  Our Promise
+                  Why We Started
                 </p>
 
                 <p className="mt-5 font-serif text-3xl leading-tight text-white">
-                  Our goal isn’t simply to leave your apartment looking
-                  pristine. It’s to provide peace of mind.
+                  We wanted to create a cleaning experience built on relationships, not transactions.
                 </p>
 
-                <p className="mt-6 text-sm leading-7 text-[#cfc7b7]">
-                  Because true luxury isn’t just walking into a spotless home.
+                <p className="mt-5 text-sm leading-7 text-[#cfc7b7]">
+                  SoHo Cleaning Group was created for people who expect more than just a clean space.
+                  Our mission is to bring consistency, professionalism, and a personal level of care
+                  back into home cleaning.
                 </p>
 
-                <p className="mt-4 text-lg font-medium leading-8 text-[#e3bd74]">
-                  It’s knowing exactly who was in it.
+                <p className="mt-5 text-sm leading-7 text-[#e3bd74]">
+                  Because when someone enters your home, trust is everything.
                 </p>
+              </div>
+            </div>
+
+            <div className="border-t border-[#2a2419] bg-[#0c0a07] p-8 sm:p-12 lg:border-l lg:border-t-0">
+              <div className="sticky top-8 overflow-hidden rounded-[28px] border border-[#8f6b2f]/50 bg-[#111111]">
+
+                <div className="relative aspect-[4/5] w-full">
+                  <Image
+                    src="/images/founders.jpeg"
+                    alt="Founders of SoHo Cleaning Group"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+
+                <div className="p-7">
+                  <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#b7924c]">
+                    Founder Promise
+                  </p>
+
+                  <p className="mt-5 font-serif text-3xl leading-tight text-white">
+                    We built SoHo Cleaning Group around one simple idea — trust comes first.
+                  </p>
+
+                  <p className="mt-6 text-sm leading-7 text-[#cfc7b7]">
+                    Every home we enter deserves respect, care, and accountability.
+                    Our standards reflect the level of service we would expect in our own home.
+                  </p>
+
+                  <p className="mt-4 text-lg font-medium leading-8 text-[#e3bd74]">
+                    Real people. Real standards. Real accountability.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 rounded-[28px] border border-[#2f291d] bg-[#111111] p-7">
+                <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#b7924c]">
+                  Our Standard
+                </p>
+
+                <p className="mt-5 text-sm leading-7 text-[#cfc7b7]">
+                  Every cleaning professional represents our name and our promise.
+                </p>
+
+                <div className="mt-5 space-y-3 text-sm text-[#f3eadb]">
+                  {[
+                    "Background checked",
+                    "Trained before entering homes",
+                    "Quality reviewed",
+                  ].map((item) => (
+                    <p key={item}>
+                      <span className="mr-2 text-[#d6ab5f]">✓</span>
+                      {item}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -97,7 +152,7 @@ export default function OurStoryPage() {
                 href="/onboarding/user"
                 className="rounded-2xl bg-[#d6ab5f] px-6 py-4 text-sm font-semibold text-black transition hover:scale-[1.02]"
               >
-                Book Your Cleaning
+                Book Your Trusted Cleaning
               </Link>
 
               <Link
