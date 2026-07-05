@@ -37,6 +37,9 @@ model Booking {
   kitchens     Int?
   hasPets Boolean @default(false)
 
+  selectedAddOns String[] @default([])
+  addOnTotal     Float    @default(0)
+
   preferredDate DateTime?
   preferredTime String?
   frequency     CleaningFrequency

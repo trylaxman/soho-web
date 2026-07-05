@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Booking" ADD COLUMN     "addOnTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "selectedAddOns" TEXT[] DEFAULT ARRAY[]::TEXT[];

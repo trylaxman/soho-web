@@ -15,6 +15,10 @@ type BookingPayment = {
   createdAt: Date;
 };
 
+const addOnLabels: Record<string, string> = {
+  INSIDE_FRIDGE: "Inside Fridge Cleaning",
+};
+
 export default async function BookingDetailPage({
     params,
 }: {
@@ -85,7 +89,16 @@ export default async function BookingDetailPage({
                                 ["Bathrooms", String(booking.bathrooms ?? 0)],
                                 ["Kitchen", String(booking.kitchens ?? 0)],
                                 ["Pets", booking.hasPets ? "Yes" : "No"],
-                                ["Frequency", formatLabel(booking.frequency)],
+[
+  "Add-On Services",
+  booking.selectedAddOns.length
+    ? booking.selectedAddOns
+        .map((addOn) => addOnLabels[addOn] || formatLabel(addOn))
+        .join(", ")
+    : "None",
+],
+["Add-On Total", `$${booking.addOnTotal}`],
+["Frequency", formatLabel(booking.frequency)],
                             ]}
                         />
                     </Panel>

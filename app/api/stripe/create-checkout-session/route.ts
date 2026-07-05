@@ -6,6 +6,14 @@ import {
   type HomeSize,
 } from "@/lib/pricing/cleaning-pricing";
 
+const addOnOptions = [
+  {
+    id: "INSIDE_FRIDGE",
+    label: "Inside Fridge Cleaning",
+    price: 40,
+  },
+];
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -16,7 +24,24 @@ export async function POST(req: Request) {
       totalSqft: Number(body.totalSqft),
     });
 
+    const selectedAddOns = Array.isArray(body.selectedAddOns)
+      ? addOnOptions.filter((addOn) => body.selectedAddOns.includes(addOn.id))
+      : [];
+
+    const addOnTotal = selectedAddOns.reduce(
+      (sum, addOn) => sum + addOn.price,
+      0
+    );
+
+    const finalTotal = Number((pricing.total + addOnTotal).toFixed(2));
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const addOnDescription = selectedAddOns.length
+      ? ` Add-ons: ${selectedAddOns
+          .map((addOn) => `${addOn.label} (+$${addOn.price})`)
+          .join(", ")}.`
+      : "";
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -28,10 +53,10 @@ export async function POST(req: Request) {
           quantity: 1,
           price_data: {
             currency: "usd",
-            unit_amount: Math.round(pricing.total * 100),
+            unit_amount: Math.round(finalTotal * 100),
             product_data: {
               name: `${pricing.serviceLabel} - ${pricing.homeSize}`,
-              description: `Included area: ${pricing.includedSqft} sqft. Total area: ${pricing.totalSqft} sqft.`,
+              description: `Included area: ${pricing.includedSqft} sqft. Total area: ${pricing.totalSqft} sqft.${addOnDescription}`,
             },
           },
         },
@@ -55,8 +80,11 @@ export async function POST(req: Request) {
         preferredDate: body.preferredDate || "",
         preferredTime: body.preferredTime || "",
         hasPets: body.hasPets === true ? "true" : "false",
+        selectedAddOns: selectedAddOns.map((addOn) => addOn.id).join(","),
+        selectedAddOnLabels: selectedAddOns.map((addOn) => addOn.label).join(", "),
+        addOnTotal: String(addOnTotal),
         specialNotes: body.specialNotes || "",
-        calculatedTotal: String(pricing.total),
+        calculatedTotal: String(finalTotal),
       },
     });
 

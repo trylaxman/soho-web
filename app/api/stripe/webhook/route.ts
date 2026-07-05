@@ -74,6 +74,14 @@ export async function POST(req: Request) {
       totalSqft: Number(metadata.totalSqft),
     });
 
+    const selectedAddOns = metadata.selectedAddOns
+      ? metadata.selectedAddOns.split(",").filter(Boolean)
+      : [];
+
+    const addOnTotal = metadata.addOnTotal ? Number(metadata.addOnTotal) : 0;
+
+    const finalTotal = Number((pricing.total + addOnTotal).toFixed(2));
+
     const user = await prisma.userProfile.upsert({
       where: {
         email: metadata.email,
@@ -113,6 +121,8 @@ export async function POST(req: Request) {
         bathrooms: metadata.bathrooms ? Number(metadata.bathrooms) : null,
         kitchens: metadata.kitchens ? Number(metadata.kitchens) : null,
         hasPets: metadata.hasPets === "true",
+        selectedAddOns,
+        addOnTotal,
 
         preferredDate: metadata.preferredDate
           ? new Date(metadata.preferredDate)
@@ -125,7 +135,7 @@ export async function POST(req: Request) {
 
         payments: {
           create: {
-            amount: pricing.total,
+            amount: finalTotal,
             currency: pricing.currency,
             status: PaymentStatus.PAID,
             provider: "STRIPE",

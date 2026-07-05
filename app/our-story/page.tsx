@@ -18,8 +18,7 @@ export default function OurStoryPage() {
           </p>
 
           <h1 className="mx-auto max-w-4xl font-serif text-4xl leading-tight text-white sm:text-6xl">
-            A Clean Home Is Important. Knowing Who You’re Letting Into It Is
-            Even More Important.
+            A Clean Home Matters. Knowing Who You Let Into It Matters Even More.
           </h1>
         </div>
 

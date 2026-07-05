@@ -31,6 +31,8 @@ type FormData = {
     specialNotes: string;
     hasPets: boolean;
     acceptedPolicies: boolean;
+    selectedAddOns: string[];
+    addOnTotal: number;
 };
 
 const initialData: FormData = {
@@ -54,6 +56,8 @@ const initialData: FormData = {
     specialNotes: "",
     hasPets: false,
     acceptedPolicies: false,
+    selectedAddOns: [],
+    addOnTotal: 0,
 };
 
 const steps = ["Service", "Personal", "Address", "Home Details", "Schedule", "Review"];
@@ -165,6 +169,15 @@ const serviceOptions = [
     },
 ];
 
+const addOnOptions = [
+    {
+        id: "INSIDE_FRIDGE",
+        label: "Inside Fridge Cleaning",
+        description: "Add interior refrigerator cleaning to your service.",
+        price: 40,
+    },
+];
+
 export default function UserOnboardingForm() {
     const [step, setStep] = useState(0);
     const [formData, setFormData] = useState<FormData>(initialData);
@@ -193,6 +206,32 @@ export default function UserOnboardingForm() {
     );
 
     const isRecurringService = formData.cleaningType === "RECURRING";
+
+    const selectedAddOns = addOnOptions.filter((addOn) =>
+        formData.selectedAddOns.includes(addOn.id)
+    );
+
+    const addOnTotal = selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0);
+
+    const finalTotal = pricing ? pricing.total + addOnTotal : 0;
+
+    const toggleAddOn = (addOnId: string) => {
+        setFormData((prev) => {
+            const selectedAddOns = prev.selectedAddOns.includes(addOnId)
+                ? prev.selectedAddOns.filter((id) => id !== addOnId)
+                : [...prev.selectedAddOns, addOnId];
+
+            const addOnTotal = addOnOptions
+                .filter((addOn) => selectedAddOns.includes(addOn.id))
+                .reduce((sum, addOn) => sum + addOn.price, 0);
+
+            return {
+                ...prev,
+                selectedAddOns,
+                addOnTotal,
+            };
+        });
+    };
 
     const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -263,6 +302,8 @@ export default function UserOnboardingForm() {
                     preferredDate: formData.preferredDate
                         ? formData.preferredDate.toISOString()
                         : null,
+                    selectedAddOns: formData.selectedAddOns,
+                    addOnTotal,
                 }),
             });
 
@@ -465,6 +506,51 @@ export default function UserOnboardingForm() {
                             {selectedService && (
                                 <>
                                     <ServiceDetailsCard service={selectedService} />
+                                    <div className="rounded-[24px] border border-[#3a2812] bg-[#111111] p-5">
+                                        <p className="text-xs uppercase tracking-[0.24em] text-[#d6ab5f]">
+                                            Optional Add-On Services
+                                        </p>
+
+                                        <p className="mt-3 text-sm leading-7 text-[#d8d0c1]">
+                                            Add extra services to your booking. These will be added to your final
+                                            total.
+                                        </p>
+
+                                        <div className="mt-5 grid gap-3">
+                                            {addOnOptions.map((addOn) => {
+                                                const isSelected = formData.selectedAddOns.includes(addOn.id);
+
+                                                return (
+                                                    <button
+                                                        key={addOn.id}
+                                                        type="button"
+                                                        onClick={() => toggleAddOn(addOn.id)}
+                                                        className={`rounded-2xl border px-5 py-4 text-left transition ${isSelected
+                                                                ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                                                : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div>
+                                                                <p className="text-sm font-semibold">
+                                                                    <span className="mr-2">{isSelected ? "✓" : "○"}</span>
+                                                                    {addOn.label}
+                                                                </p>
+
+                                                                <p className="mt-2 text-sm leading-6 text-[#cfc7b7]">
+                                                                    {addOn.description}
+                                                                </p>
+                                                            </div>
+
+                                                            <p className="shrink-0 font-serif text-xl text-[#d6ab5f]">
+                                                                +${addOn.price}
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
 
                                     <div className="rounded-[24px] border border-[#3a2812] bg-[#111111] p-5">
                                         <p className="text-sm leading-7 text-[#d8d0c1]">
@@ -721,7 +807,7 @@ export default function UserOnboardingForm() {
                                         </div>
 
                                         <p className="font-serif text-3xl text-[#d6ab5f]">
-                                            ${pricing.total}
+                                            ${finalTotal}
                                         </p>
                                     </div>
                                 </div>
@@ -794,6 +880,14 @@ export default function UserOnboardingForm() {
                                     label="Service"
                                     value={selectedService?.label || "Not selected"}
                                 />
+                                <CompactReviewItem
+                                    label="Add-On Services"
+                                    value={
+                                        selectedAddOns.length
+                                            ? selectedAddOns.map((addOn) => `${addOn.label} (+$${addOn.price})`).join(", ")
+                                            : "None"
+                                    }
+                                />
                                 {isRecurringService && (
                                     <CompactReviewItem
                                         label="Frequency"
@@ -862,6 +956,13 @@ export default function UserOnboardingForm() {
                                             label="Extra Area Charge"
                                             value={`$${pricing.extraSqftCharge}`}
                                         />
+                                        {selectedAddOns.map((addOn) => (
+                                            <SummaryRow
+                                                key={addOn.id}
+                                                label={addOn.label}
+                                                value={`+$${addOn.price}`}
+                                            />
+                                        ))}
 
                                         <div className="border-t border-[#3a2812] pt-5">
                                             <div className="flex items-center justify-between">
@@ -870,7 +971,7 @@ export default function UserOnboardingForm() {
                                                 </span>
 
                                                 <span className="font-serif text-4xl text-[#d6ab5f]">
-                                                    ${pricing.total}
+                                                    ${finalTotal}
                                                 </span>
                                             </div>
                                         </div>
