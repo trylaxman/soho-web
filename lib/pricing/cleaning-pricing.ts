@@ -18,7 +18,7 @@ export const pricingConfig: Record<CleaningType, PricingRule> = {
   SOHO_SIGNATURE: {
     label: "SoHo Signature",
     basePrices: {
-      "1BHK": 150,
+      "1BHK": 1,
       "2BHK": 220,
       "3BHK": 300,
       "4BHK": 380,
