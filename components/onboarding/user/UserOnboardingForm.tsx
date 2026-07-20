@@ -526,8 +526,8 @@ export default function UserOnboardingForm() {
                                                         type="button"
                                                         onClick={() => toggleAddOn(addOn.id)}
                                                         className={`rounded-2xl border px-5 py-4 text-left transition ${isSelected
-                                                                ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
-                                                                : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                                            ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                                            : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
                                                             }`}
                                                     >
                                                         <div className="flex items-start justify-between gap-4">
@@ -744,10 +744,10 @@ export default function UserOnboardingForm() {
                                 value={formData.homeSize}
                                 onChange={(value) => updateField("homeSize", value)}
                                 options={[
-                                    { label: "1 BHK", value: "1BHK" },
-                                    { label: "2 BHK", value: "2BHK" },
-                                    { label: "3 BHK", value: "3BHK" },
-                                    { label: "4 BHK", value: "4BHK" },
+                                    { label: "1 BR", value: "1BHK" },
+                                    { label: "2 BR", value: "2BHK" },
+                                    { label: "3 BR", value: "3BHK" },
+                                    { label: "4 BR", value: "4BHK" },
                                 ]}
                             />
 
@@ -939,7 +939,7 @@ export default function UserOnboardingForm() {
 
                                     <div className="space-y-5 px-6 py-6">
                                         <SummaryRow label="Service" value={pricing.serviceLabel} />
-                                        <SummaryRow label="Home Size" value={pricing.homeSize} />
+                                        <SummaryRow label="Home Size" value={pricing.homeSizeLabel} />
                                         <SummaryRow
                                             label="Entered Area"
                                             value={`${pricing.totalSqft} sqft`}

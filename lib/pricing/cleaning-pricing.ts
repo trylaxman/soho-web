@@ -101,6 +101,21 @@ export const pricingConfig: Record<CleaningType, PricingRule> = {
   },
 };
 
+export function getHomeSizeLabel(homeSize: HomeSize): string {
+  switch (homeSize) {
+    case "1BHK":
+      return "1 BR";
+    case "2BHK":
+      return "2 BR";
+    case "3BHK":
+      return "3 BR";
+    case "4BHK":
+      return "4 BR";
+    default:
+      return homeSize;
+  }
+}
+
 export function calculateCleaningPrice({
   cleaningType,
   homeSize,
@@ -123,15 +138,21 @@ export function calculateCleaningPrice({
     throw new Error("Invalid home size");
   }
 
-  const safeTotalSqft = Number.isFinite(totalSqft) && totalSqft > 0 ? totalSqft : includedSqft;
+  const safeTotalSqft =
+    Number.isFinite(totalSqft) && totalSqft > 0
+      ? totalSqft
+      : includedSqft;
 
   const extraSqft = Math.max(0, safeTotalSqft - includedSqft);
-  const extraSqftCharge = Number((extraSqft * rule.extraSqftRate).toFixed(2));
+  const extraSqftCharge = Number(
+    (extraSqft * rule.extraSqftRate).toFixed(2)
+  );
   const total = Number((basePrice + extraSqftCharge).toFixed(2));
 
   return {
     serviceLabel: rule.label,
-    homeSize,
+    homeSize, // Internal value (keep unchanged)
+    homeSizeLabel: getHomeSizeLabel(homeSize), // Display value
     basePrice,
     includedSqft,
     totalSqft: safeTotalSqft,

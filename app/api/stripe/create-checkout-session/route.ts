@@ -55,7 +55,7 @@ export async function POST(req: Request) {
             currency: "usd",
             unit_amount: Math.round(finalTotal * 100),
             product_data: {
-              name: `${pricing.serviceLabel} - ${pricing.homeSize}`,
+              name: `${pricing.serviceLabel} - ${pricing.homeSizeLabel}`,
               description: `Included area: ${pricing.includedSqft} sqft. Total area: ${pricing.totalSqft} sqft.${addOnDescription}`,
             },
           },
