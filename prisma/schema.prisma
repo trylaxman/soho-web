@@ -35,7 +35,7 @@ model Booking {
   bedrooms     Int?
   bathrooms    Int?
   kitchens     Int?
-  hasPets Boolean @default(false)
+  hasPets      Boolean @default(false)
 
   selectedAddOns String[] @default([])
   addOnTotal     Float    @default(0)
@@ -60,13 +60,13 @@ model ProfessionalProfile {
   phone           String
   profileImageUrl String?
 
-  idDocumentType ProfessionalIdDocumentType?
-  idDocumentFrontUrl String?
-  idDocumentBackUrl String?
-  idDocumentStatus ProfessionalIdDocumentStatus @default(PENDING)
+  idDocumentType      ProfessionalIdDocumentType?
+  idDocumentFrontUrl  String?
+  idDocumentBackUrl   String?
+  idDocumentStatus    ProfessionalIdDocumentStatus @default(PENDING)
 
-idDocumentReuploadToken String? @unique
-idDocumentReuploadExpiresAt DateTime?
+  idDocumentReuploadToken     String?   @unique
+  idDocumentReuploadExpiresAt DateTime?
 
   experienceYears Int?
   servicesOffered String[]
@@ -95,13 +95,15 @@ model Payment {
   status   PaymentStatus @default(PENDING)
 
   provider          String  @default("STRIPE")
-  paymentIntentId   String?
+  paymentIntentId   String? @unique
   checkoutSessionId String? @unique
   transactionId     String?
 
-  paidAt     DateTime?
-  failedAt   DateTime?
-  refundedAt DateTime?
+  authorizedAt DateTime?
+  paidAt       DateTime?
+  cancelledAt  DateTime?
+  failedAt     DateTime?
+  refundedAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -113,7 +115,9 @@ model Payment {
 
 enum PaymentStatus {
   PENDING
+  AUTHORIZED
   PAID
+  CANCELLED
   FAILED
   REFUNDED
 }
