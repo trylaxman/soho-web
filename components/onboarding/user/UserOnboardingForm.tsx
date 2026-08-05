@@ -310,13 +310,15 @@ export default function UserOnboardingForm() {
             const result = await response.json();
 
             if (!response.ok || !result.success || !result.url) {
-                throw new Error(result.message || "Unable to start checkout.");
+                throw new Error(
+                    result.message || "Unable to start card authorization."
+                );
             }
 
             window.location.href = result.url;
         } catch (error) {
             console.error(error);
-            alert("Unable to start checkout. Please try again.");
+            alert("Unable to open secure card authorization. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
@@ -439,8 +441,8 @@ export default function UserOnboardingForm() {
                     </h1>
 
                     <p className="mx-auto mt-4 max-w-2xl text-[#d6d0c5]">
-                        Tell us about your home, choose your schedule, review pricing, and
-                        continue to secure checkout.
+                        Tell us about your home, choose your schedule, review your estimate,
+                        and securely authorize your card to reserve the booking.
                     </p>
                 </div>
 
@@ -799,10 +801,11 @@ export default function UserOnboardingForm() {
                                     <div className="flex items-center justify-between gap-5">
                                         <div>
                                             <p className="text-xs uppercase tracking-[0.22em] text-[#8f8778]">
-                                                Live Estimate
+                                                Estimated Authorization
                                             </p>
+
                                             <p className="mt-2 text-sm text-[#cfc7b7]">
-                                                Based on selected service and area.
+                                                This amount will be authorized on your card to reserve the booking.
                                             </p>
                                         </div>
 
@@ -870,8 +873,8 @@ export default function UserOnboardingForm() {
                                 </h2>
 
                                 <p className="mt-2 text-sm leading-7 text-[#cfc7b7]">
-                                    Please review your details before continuing to secure
-                                    checkout.
+                                    Please review your booking details before securely authorizing your
+                                    card.
                                 </p>
                             </div>
 
@@ -932,8 +935,8 @@ export default function UserOnboardingForm() {
                                         </h3>
 
                                         <p className="mt-2 text-sm text-[#cfc7b7]">
-                                            Pricing is calculated based on service, BHK, and total
-                                            area.
+                                            Your authorization amount is calculated based on the selected service,
+                                            home size, total area, and optional add-ons.
                                         </p>
                                     </div>
 
@@ -965,12 +968,19 @@ export default function UserOnboardingForm() {
                                         ))}
 
                                         <div className="border-t border-[#3a2812] pt-5">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-lg font-medium text-[#f3eadb]">
-                                                    Total Due
-                                                </span>
+                                            <div className="flex items-center justify-between gap-5">
+                                                <div>
+                                                    <p className="text-lg font-medium text-[#f3eadb]">
+                                                        Card Authorization Amount
+                                                    </p>
 
-                                                <span className="font-serif text-4xl text-[#d6ab5f]">
+                                                    <p className="mt-1 text-xs leading-6 text-[#8f8778]">
+                                                        The final payment will be captured after your cleaning is
+                                                        completed.
+                                                    </p>
+                                                </div>
+
+                                                <span className="shrink-0 font-serif text-4xl text-[#d6ab5f]">
                                                     ${finalTotal}
                                                 </span>
                                             </div>
@@ -978,6 +988,32 @@ export default function UserOnboardingForm() {
                                     </div>
                                 </div>
                             )}
+
+                            <div className="rounded-[24px] border border-[#8f6b2f]/50 bg-[#151008] p-5">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#8f6b2f] text-lg text-[#d6ab5f]">
+                                        ✓
+                                    </div>
+
+                                    <div>
+                                        <p className="text-sm font-semibold text-[#e3bd74]">
+                                            Secure card authorization
+                                        </p>
+
+                                        <p className="mt-2 text-sm leading-7 text-[#cfc7b7]">
+                                            Your card will be authorized for ${finalTotal} when you
+                                            complete checkout. A temporary pending hold may appear on your
+                                            account, but the payment will not be captured until your
+                                            cleaning service has been completed.
+                                        </p>
+
+                                        <p className="mt-3 text-xs leading-6 text-[#8f8778]">
+                                            If the booking is cancelled before capture, the authorization
+                                            will be released instead of being charged.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="rounded-[24px] border border-[#2f291d] bg-[#111111] p-5">
                                 <p className="text-xs uppercase tracking-[0.2em] text-[#8f8778]">
@@ -1029,7 +1065,9 @@ export default function UserOnboardingForm() {
                                 disabled={isSubmitting || !pricing}
                                 className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {isSubmitting ? "Opening Checkout..." : "Continue to Payment"}
+                                {isSubmitting
+                                    ? "Opening Secure Authorization..."
+                                    : `Authorize $${finalTotal} & Reserve`}
                             </button>
                         )}
                     </div>

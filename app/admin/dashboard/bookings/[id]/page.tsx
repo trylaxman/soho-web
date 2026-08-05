@@ -1,22 +1,31 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import BookingStatusActions from "@/components/admin/bookings/BookingStatusActions";
+import PaymentActions from "@/components/admin/payments/PaymentActions";
 
 type BookingPayment = {
-  id: string;
-  amount: number;
-  currency: string;
-  status: string;
-  provider: string;
-  paymentIntentId: string | null;
-  checkoutSessionId: string | null;
-  transactionId: string | null;
-  paidAt: Date | null;
-  createdAt: Date;
+    id: string;
+    amount: number;
+    currency: string;
+    status:
+    | "PENDING"
+    | "AUTHORIZED"
+    | "PAID"
+    | "CANCELLED"
+    | "FAILED"
+    | "REFUNDED";
+    provider: string;
+    paymentIntentId: string | null;
+    checkoutSessionId: string | null;
+    transactionId: string | null;
+    authorizedAt: Date | null;
+    paidAt: Date | null;
+    cancelledAt: Date | null;
+    createdAt: Date;
 };
 
 const addOnLabels: Record<string, string> = {
-  INSIDE_FRIDGE: "Inside Fridge Cleaning",
+    INSIDE_FRIDGE: "Inside Fridge Cleaning",
 };
 
 export default async function BookingDetailPage({
@@ -89,16 +98,16 @@ export default async function BookingDetailPage({
                                 ["Bathrooms", String(booking.bathrooms ?? 0)],
                                 ["Kitchen", String(booking.kitchens ?? 0)],
                                 ["Pets", booking.hasPets ? "Yes" : "No"],
-[
-  "Add-On Services",
-  booking.selectedAddOns.length
-    ? booking.selectedAddOns
-        .map((addOn) => addOnLabels[addOn] || formatLabel(addOn))
-        .join(", ")
-    : "None",
-],
-["Add-On Total", `$${booking.addOnTotal}`],
-["Frequency", formatLabel(booking.frequency)],
+                                [
+                                    "Add-On Services",
+                                    booking.selectedAddOns.length
+                                        ? booking.selectedAddOns
+                                            .map((addOn) => addOnLabels[addOn] || formatLabel(addOn))
+                                            .join(", ")
+                                        : "None",
+                                ],
+                                ["Add-On Total", `$${booking.addOnTotal}`],
+                                ["Frequency", formatLabel(booking.frequency)],
                             ]}
                         />
                     </Panel>
@@ -157,8 +166,10 @@ export default async function BookingDetailPage({
                                                 <p className="text-sm font-medium text-white">
                                                     {payment.currency} {payment.amount}
                                                 </p>
+
                                                 <p className="mt-1 text-xs text-[#8f8778]">
-                                                    {payment.provider} · {payment.createdAt.toLocaleString("en-US")}
+                                                    {payment.provider} ·{" "}
+                                                    {payment.createdAt.toLocaleString("en-US")}
                                                 </p>
                                             </div>
 
@@ -166,14 +177,44 @@ export default async function BookingDetailPage({
                                         </div>
 
                                         <div className="mt-4 grid gap-3 text-xs text-[#8f8778]">
-                                            <p>Payment Intent: {payment.paymentIntentId || "Not available"}</p>
-                                            <p>Checkout Session: {payment.checkoutSessionId || "Not available"}</p>
-                                            <p>Transaction ID: {payment.transactionId || "Not available"}</p>
+                                            <p>
+                                                Payment Intent: {payment.paymentIntentId || "Not available"}
+                                            </p>
+
+                                            <p>
+                                                Checkout Session: {payment.checkoutSessionId || "Not available"}
+                                            </p>
+
+                                            <p>
+                                                Transaction ID: {payment.transactionId || "Not available"}
+                                            </p>
+
+                                            <p>
+                                                Authorized At:{" "}
+                                                {payment.authorizedAt
+                                                    ? payment.authorizedAt.toLocaleString("en-US")
+                                                    : "Not authorized"}
+                                            </p>
+
                                             <p>
                                                 Paid At:{" "}
-                                                {payment.paidAt ? payment.paidAt.toLocaleString("en-US") : "Not paid yet"}
+                                                {payment.paidAt
+                                                    ? payment.paidAt.toLocaleString("en-US")
+                                                    : "Not captured yet"}
+                                            </p>
+
+                                            <p>
+                                                Cancelled At:{" "}
+                                                {payment.cancelledAt
+                                                    ? payment.cancelledAt.toLocaleString("en-US")
+                                                    : "Not cancelled"}
                                             </p>
                                         </div>
+
+                                        <PaymentActions
+                                            paymentId={payment.id}
+                                            currentStatus={payment.status}
+                                        />
                                     </div>
                                 ))}
                             </div>
