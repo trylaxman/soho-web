@@ -56,9 +56,47 @@ export function getPaymentCapturedSmsBody({
   amount: number;
   currency?: string;
 }) {
-  return `SoHo Cleaning Group: Your cleaning payment of ${currency} ${amount.toFixed(
-    2
+  return `SoHo Cleaning Group: Your cleaning payment of ${formatCurrency(
+    amount,
+    currency
   )} has been successfully charged. Thank you for choosing SoHo Cleaning Group.`;
+}
+
+export function getAdditionalAuthorizationSmsBody({
+  additionalAmount,
+  finalAmount,
+  reason,
+  authorizationLink,
+  expiresInHours = 24,
+}: {
+  additionalAmount: number;
+  finalAmount: number;
+  reason?: string;
+  authorizationLink: string;
+  expiresInHours?: number;
+}) {
+  const reasonText = reason ? ` Reason: ${reason}.` : "";
+
+  return `SoHo Cleaning Group: An additional card authorization of ${formatCurrency(
+    additionalAmount,
+    "USD"
+  )} is required for your updated cleaning total of ${formatCurrency(
+    finalAmount,
+    "USD"
+  )}.${reasonText} Review and authorize securely within ${expiresInHours} hours: ${authorizationLink}`;
+}
+
+export function getAdditionalAuthorizationCompletedSmsBody({
+  amount,
+  currency = "USD",
+}: {
+  amount: number;
+  currency?: string;
+}) {
+  return `SoHo Cleaning Group: Your additional card authorization of ${formatCurrency(
+    amount,
+    currency
+  )} was completed successfully. This amount has not been charged yet and will be captured after your cleaning is completed.`;
 }
 
 export function getProfessionalApplicationReceivedSmsBody() {
@@ -80,11 +118,18 @@ export function getBookingStatusSmsBody(status: string) {
       "SoHo Cleaning Group: Your cleaning service has been marked as completed. Thank you for choosing SoHo Cleaning Group.",
 
     CANCELLED:
-      "SoHo Cleaning Group: Your booking has been cancelled and the card authorization has been released. Your bank may take some time to remove the pending hold.",
+      "SoHo Cleaning Group: Your booking has been cancelled and any active card authorization has been released. Your bank may take some time to remove the pending hold.",
   };
 
   return (
     messages[status] ||
     `SoHo Cleaning Group: Your booking status has been updated to ${status}.`
   );
+}
+
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amount);
 }
