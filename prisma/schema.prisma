@@ -35,7 +35,7 @@ model Booking {
   bedrooms     Int?
   bathrooms    Int?
   kitchens     Int?
-  hasPets Boolean @default(false)
+  hasPets      Boolean      @default(false)
 
   selectedAddOns String[] @default([])
   addOnTotal     Float    @default(0)
@@ -47,7 +47,8 @@ model Booking {
 
   status BookingStatus @default(PENDING)
 
-  payments Payment[]
+  payments                 Payment[]
+  additionalAuthorizations AdditionalAuthorization[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -60,13 +61,13 @@ model ProfessionalProfile {
   phone           String
   profileImageUrl String?
 
-  idDocumentType ProfessionalIdDocumentType?
+  idDocumentType     ProfessionalIdDocumentType?
   idDocumentFrontUrl String?
-  idDocumentBackUrl String?
-  idDocumentStatus ProfessionalIdDocumentStatus @default(PENDING)
+  idDocumentBackUrl  String?
+  idDocumentStatus   ProfessionalIdDocumentStatus @default(PENDING)
 
-idDocumentReuploadToken String? @unique
-idDocumentReuploadExpiresAt DateTime?
+  idDocumentReuploadToken     String?   @unique
+  idDocumentReuploadExpiresAt DateTime?
 
   experienceYears Int?
   servicesOffered String[]
@@ -90,30 +91,72 @@ model Payment {
   bookingId String
   booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  amount   Float
-  currency String        @default("USD")
-  status   PaymentStatus @default(PENDING)
+  authorizedAmount          Float
+  capturedAmount            Float?
+  currency                  String        @default("USD")
+  status                    PaymentStatus @default(PENDING)
+  isAdditionalAuthorization Boolean       @default(false)
 
   provider          String  @default("STRIPE")
-  paymentIntentId   String?
+  paymentIntentId   String? @unique
   checkoutSessionId String? @unique
   transactionId     String?
 
-  paidAt     DateTime?
-  failedAt   DateTime?
-  refundedAt DateTime?
+  authorizedAt DateTime?
+  paidAt       DateTime?
+  cancelledAt  DateTime?
+  failedAt     DateTime?
+  refundedAt   DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  additionalAuthorizations AdditionalAuthorization[]
 
   @@index([bookingId])
   @@index([status])
   @@index([provider])
 }
 
+model AdditionalAuthorization {
+  id String @id @default(cuid())
+
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  token String @unique
+
+  additionalAmount Float
+  reason           String?
+
+  status AdditionalAuthorizationStatus @default(PENDING)
+
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  expiresAt DateTime
+
+  authorizedAt DateTime?
+  cancelledAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+enum AdditionalAuthorizationStatus {
+  PENDING
+  AUTHORIZED
+  EXPIRED
+  CANCELLED
+}
+
 enum PaymentStatus {
   PENDING
+  AUTHORIZED
   PAID
+  CANCELLED
   FAILED
   REFUNDED
 }

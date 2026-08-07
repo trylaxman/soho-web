@@ -5,7 +5,8 @@ export const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN!
 );
 
-export const twilioVerifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID!;
+export const twilioVerifyServiceSid =
+  process.env.TWILIO_VERIFY_SERVICE_SID!;
 
 export const twilioMessagingServiceSid =
   process.env.TWILIO_MESSAGING_SERVICE_SID!;
@@ -28,7 +29,7 @@ export async function sendSms({
       sid: message.sid,
       status: message.status,
       to,
-      body
+      body,
     });
 
     return true;
@@ -45,7 +46,57 @@ export function getBookingCreatedSmsBody({
   date: string;
   time: string;
 }) {
-  return `SoHo Cleaning Group: Cleaning has been booked for ${date} at ${time}. A professional will be assigned soon.`;
+  return `SoHo Cleaning Group: Your cleaning is reserved for ${date} at ${time}. Your card has been authorized but not charged. Payment will be captured after the cleaning is completed.`;
+}
+
+export function getPaymentCapturedSmsBody({
+  amount,
+  currency = "USD",
+}: {
+  amount: number;
+  currency?: string;
+}) {
+  return `SoHo Cleaning Group: Your cleaning payment of ${formatCurrency(
+    amount,
+    currency
+  )} has been successfully charged. Thank you for choosing SoHo Cleaning Group.`;
+}
+
+export function getAdditionalAuthorizationSmsBody({
+  additionalAmount,
+  finalAmount,
+  reason,
+  authorizationLink,
+  expiresInHours = 24,
+}: {
+  additionalAmount: number;
+  finalAmount: number;
+  reason?: string;
+  authorizationLink: string;
+  expiresInHours?: number;
+}) {
+  const reasonText = reason ? ` Reason: ${reason}.` : "";
+
+  return `SoHo Cleaning Group: An additional card authorization of ${formatCurrency(
+    additionalAmount,
+    "USD"
+  )} is required for your updated cleaning total of ${formatCurrency(
+    finalAmount,
+    "USD"
+  )}.${reasonText} Review and authorize securely within ${expiresInHours} hours: ${authorizationLink}`;
+}
+
+export function getAdditionalAuthorizationCompletedSmsBody({
+  amount,
+  currency = "USD",
+}: {
+  amount: number;
+  currency?: string;
+}) {
+  return `SoHo Cleaning Group: Your additional card authorization of ${formatCurrency(
+    amount,
+    currency
+  )} was completed successfully. This amount has not been charged yet and will be captured after your cleaning is completed.`;
 }
 
 export function getProfessionalApplicationReceivedSmsBody() {
@@ -55,19 +106,30 @@ export function getProfessionalApplicationReceivedSmsBody() {
 export function getBookingStatusSmsBody(status: string) {
   const messages: Record<string, string> = {
     PENDING:
-      "SoHo Cleaning Group: Your booking is now pending review. We will update you shortly.",
+      "SoHo Cleaning Group: Your booking is pending review. We will update you shortly.",
+
     CONFIRMED:
-      "SoHo Cleaning Group: Your booking has been confirmed. A professional will be assigned soon.",
+      "SoHo Cleaning Group: Your booking has been confirmed. A cleaning professional will be assigned soon.",
+
     ASSIGNED:
       "SoHo Cleaning Group: A cleaning professional has been assigned to your booking.",
+
     COMPLETED:
-      "SoHo Cleaning Group: Your cleaning service has been completed. Thank you for choosing SoHo.",
+      "SoHo Cleaning Group: Your cleaning service has been marked as completed. Thank you for choosing SoHo Cleaning Group.",
+
     CANCELLED:
-      "SoHo Cleaning Group: Your booking has been cancelled. Please contact us if this was a mistake.",
+      "SoHo Cleaning Group: Your booking has been cancelled and any active card authorization has been released. Your bank may take some time to remove the pending hold.",
   };
 
   return (
     messages[status] ||
     `SoHo Cleaning Group: Your booking status has been updated to ${status}.`
   );
+}
+
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amount);
 }
