@@ -49,6 +49,34 @@ export function getBookingCreatedSmsBody({
   return `SoHo Cleaning Group: Your cleaning is reserved for ${date} at ${time}. Your card has been authorized but not charged. Payment will be captured after the cleaning is completed.`;
 }
 
+export function getAdminNewBookingSmsBody({
+  customerName,
+  service,
+  date,
+  time,
+  amount,
+  currency = "USD",
+  bookingUrl,
+}: {
+  customerName: string;
+  service: string;
+  date: string;
+  time: string;
+  amount: number;
+  currency?: string;
+  bookingUrl: string;
+}) {
+  return `SoHo Cleaning Group: New booking received.
+
+Customer: ${customerName}
+Service: ${service}
+Date: ${date}
+Time: ${time}
+Authorized: ${formatCurrency(amount, currency)}
+
+View booking: ${bookingUrl}`;
+}
+
 export function getPaymentCapturedSmsBody({
   amount,
   currency = "USD",

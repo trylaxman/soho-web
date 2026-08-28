@@ -19,6 +19,7 @@ import {
   getBookingCreatedSmsBody,
   sendSms,
 } from "@/lib/twilio";
+import { notifyAdminsOfNewBooking } from "@/lib/admin-booking-notifications";
 
 const ORIGINAL_BOOKING_FLOW = "MANUAL_CAPTURE";
 const ADDITIONAL_AUTHORIZATION_FLOW = "ADDITIONAL_AUTHORIZATION";
@@ -182,8 +183,8 @@ async function handleOriginalBooking({
   >;
   metadata: Record<string, string>;
   paymentState: ReturnType<typeof getPaymentState> extends infer T
-    ? Exclude<T, null>
-    : never;
+  ? Exclude<T, null>
+  : never;
 }) {
   const requiredMetadata = [
     "fullName",
@@ -323,7 +324,7 @@ async function handleOriginalBooking({
 
           transactionId:
             paymentState.status === PaymentStatus.PAID &&
-            typeof paymentIntent.latest_charge === "string"
+              typeof paymentIntent.latest_charge === "string"
               ? paymentIntent.latest_charge
               : null,
 
@@ -352,8 +353,8 @@ async function handleOriginalBooking({
 
   const bookingDate = booking.preferredDate
     ? booking.preferredDate.toLocaleDateString(
-        "en-US"
-      )
+      "en-US"
+    )
     : "your selected date";
 
   const bookingTime =
@@ -366,6 +367,57 @@ async function handleOriginalBooking({
       time: bookingTime,
     }),
   });
+
+  try {
+    await notifyAdminsOfNewBooking({
+      bookingId: booking.id,
+
+      customer: {
+        fullName: booking.userProfile.fullName,
+        email: booking.userProfile.email,
+        phone: booking.userProfile.phone,
+        address: booking.userProfile.address,
+        apartment: booking.userProfile.apartment,
+        city: booking.userProfile.city,
+        state: booking.userProfile.state,
+        zipCode: booking.userProfile.zipCode,
+      },
+
+      cleaningType: booking.cleaningType,
+      homeSize: booking.homeSize,
+
+      bedrooms: booking.bedrooms,
+      bathrooms: booking.bathrooms,
+      kitchens: booking.kitchens,
+
+      hasPets: booking.hasPets,
+
+      selectedAddOns: booking.selectedAddOns,
+      addOnTotal: booking.addOnTotal,
+
+      preferredDate: booking.preferredDate,
+      preferredTime: booking.preferredTime,
+
+      frequency: booking.frequency,
+
+      specialNotes: booking.specialNotes,
+
+      authorizedAmount: stripeAmount,
+      currency: paymentIntent.currency.toUpperCase(),
+    });
+  } catch (error) {
+    /*
+     * A notification failure must never turn a successful booking
+     * into a failed Stripe webhook.
+     */
+    console.error(
+      "ADMIN_NEW_BOOKING_NOTIFICATION_ERROR",
+      {
+        bookingId: booking.id,
+        error,
+      }
+    );
+  }
 
   return NextResponse.json({
     received: true,
@@ -389,8 +441,8 @@ async function handleAdditionalAuthorization({
   >;
   metadata: Record<string, string>;
   paymentState: ReturnType<typeof getPaymentState> extends infer T
-    ? Exclude<T, null>
-    : never;
+  ? Exclude<T, null>
+  : never;
 }) {
   const additionalAuthorizationId =
     metadata.additionalAuthorizationId ||
@@ -465,9 +517,9 @@ async function handleAdditionalAuthorization({
 
   if (
     authorization.booking.status ===
-      BookingStatus.CANCELLED ||
+    BookingStatus.CANCELLED ||
     authorization.status ===
-      AdditionalAuthorizationStatus.CANCELLED
+    AdditionalAuthorizationStatus.CANCELLED
   ) {
     await releaseUnexpectedAuthorization({
       paymentIntentId,
@@ -485,7 +537,7 @@ async function handleAdditionalAuthorization({
 
   if (
     authorization.status ===
-      AdditionalAuthorizationStatus.EXPIRED ||
+    AdditionalAuthorizationStatus.EXPIRED ||
     authorization.expiresAt <= new Date()
   ) {
     await releaseUnexpectedAuthorization({
@@ -604,7 +656,7 @@ async function handleAdditionalAuthorization({
 
             capturedAmount:
               paymentState.status ===
-              PaymentStatus.PAID
+                PaymentStatus.PAID
                 ? stripeAmount
                 : null,
 
@@ -623,7 +675,7 @@ async function handleAdditionalAuthorization({
             transactionId:
               paymentState.status ===
                 PaymentStatus.PAID &&
-              typeof paymentIntent.latest_charge ===
+                typeof paymentIntent.latest_charge ===
                 "string"
                 ? paymentIntent.latest_charge
                 : null,
@@ -730,7 +782,7 @@ function getStripePaymentAmount(
 ) {
   const amountInCents =
     paymentIntent.status === "succeeded" &&
-    paymentIntent.amount_received > 0
+      paymentIntent.amount_received > 0
       ? paymentIntent.amount_received
       : paymentIntent.amount;
 
