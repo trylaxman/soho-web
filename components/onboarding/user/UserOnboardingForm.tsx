@@ -31,6 +31,7 @@ type FormData = {
     specialNotes: string;
     hasPets: boolean;
     acceptedPolicies: boolean;
+    acceptedSmsConsent: boolean;
     selectedAddOns: string[];
     addOnTotal: number;
 };
@@ -56,11 +57,19 @@ const initialData: FormData = {
     specialNotes: "",
     hasPets: false,
     acceptedPolicies: false,
+    acceptedSmsConsent: false,
     selectedAddOns: [],
     addOnTotal: 0,
 };
 
-const steps = ["Service", "Personal", "Address", "Home Details", "Schedule", "Review"];
+const steps = [
+    "Service",
+    "Personal",
+    "Address",
+    "Home Details",
+    "Schedule",
+    "Review",
+];
 
 const timeSlots = [
     { label: "8:00 AM - 10:00 AM", value: "08:00-10:00" },
@@ -196,11 +205,12 @@ export default function UserOnboardingForm() {
     const pricing =
         formData.cleaningType && formData.homeSize
             ? calculateCleaningPrice({
-                cleaningType: formData.cleaningType as CleaningType,
-                homeSize: formData.homeSize as HomeSize,
-                totalSqft: Number(formData.totalSqft),
-            })
+                  cleaningType: formData.cleaningType as CleaningType,
+                  homeSize: formData.homeSize as HomeSize,
+                  totalSqft: Number(formData.totalSqft),
+              })
             : null;
+
     const selectedService = serviceOptions.find(
         (service) => service.value === formData.cleaningType
     );
@@ -211,7 +221,10 @@ export default function UserOnboardingForm() {
         formData.selectedAddOns.includes(addOn.id)
     );
 
-    const addOnTotal = selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0);
+    const addOnTotal = selectedAddOns.reduce(
+        (sum, addOn) => sum + addOn.price,
+        0
+    );
 
     const finalTotal = pricing ? pricing.total + addOnTotal : 0;
 
@@ -233,8 +246,14 @@ export default function UserOnboardingForm() {
         });
     };
 
-    const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
+    const updateField = <K extends keyof FormData>(
+        field: K,
+        value: FormData[K]
+    ) => {
+        setFormData((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
 
         if (field === "phone") {
             setIsPhoneVerified(false);
@@ -258,9 +277,18 @@ export default function UserOnboardingForm() {
             }
         }
 
-        if (step === 1 && !isPhoneVerified) {
-            alert("Please verify your phone number before continuing.");
-            return;
+        if (step === 1) {
+            if (!formData.acceptedSmsConsent) {
+                alert(
+                    "Please provide consent to receive transactional SMS messages before continuing."
+                );
+                return;
+            }
+
+            if (!isPhoneVerified) {
+                alert("Please verify your phone number before continuing.");
+                return;
+            }
         }
 
         if (step === 3) {
@@ -282,50 +310,64 @@ export default function UserOnboardingForm() {
             }
         }
 
-        setStep((prev) => Math.min(prev + 1, steps.length - 1));
+        setStep((prev) =>
+            Math.min(prev + 1, steps.length - 1)
+        );
     };
-    const prevStep = () => setStep((prev) => Math.max(prev - 1, 0));
+
+    const prevStep = () =>
+        setStep((prev) => Math.max(prev - 1, 0));
 
     const submitForm = async () => {
         try {
             setIsSubmitting(true);
 
-            const response = await fetch("/api/stripe/create-checkout-session", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    phone: normalizePhone(),
-                    frequency: isRecurringService ? formData.frequency : "ONE_TIME",
-                    preferredDate: formData.preferredDate
-                        ? formData.preferredDate.toISOString()
-                        : null,
-                    selectedAddOns: formData.selectedAddOns,
-                    addOnTotal,
-                }),
-            });
+            const response = await fetch(
+                "/api/stripe/create-checkout-session",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        ...formData,
+                        phone: normalizePhone(),
+                        frequency: isRecurringService
+                            ? formData.frequency
+                            : "ONE_TIME",
+                        preferredDate: formData.preferredDate
+                            ? formData.preferredDate.toISOString()
+                            : null,
+                        selectedAddOns: formData.selectedAddOns,
+                        addOnTotal,
+                    }),
+                }
+            );
 
             const result = await response.json();
 
             if (!response.ok || !result.success || !result.url) {
                 throw new Error(
-                    result.message || "Unable to start card authorization."
+                    result.message ||
+                        "Unable to start card authorization."
                 );
             }
 
             window.location.href = result.url;
         } catch (error) {
             console.error(error);
-            alert("Unable to open secure card authorization. Please try again.");
+            alert(
+                "Unable to open secure card authorization. Please try again."
+            );
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const normalizePhone = () => {
-        const rawPhone = formData.phone.replace(/\s+/g, "").trim();
+        const rawPhone = formData.phone
+            .replace(/\s+/g, "")
+            .trim();
 
         const cleanedPhone = rawPhone.startsWith(countryCode)
             ? rawPhone.slice(countryCode.length)
@@ -335,6 +377,13 @@ export default function UserOnboardingForm() {
     };
 
     const sendOtp = async () => {
+        if (!formData.acceptedSmsConsent) {
+            setOtpError(
+                "Please agree to receive transactional SMS messages before requesting a verification code."
+            );
+            return;
+        }
+
         try {
             setIsSendingOtp(true);
             setOtpMessage("");
@@ -344,20 +393,32 @@ export default function UserOnboardingForm() {
 
             const response = await fetch("/api/sms/send-otp", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phone }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    phone,
+                }),
             });
 
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.message || "Failed to send OTP");
+                throw new Error(
+                    result.message || "Failed to send OTP"
+                );
             }
 
             setIsOtpSent(true);
-            setOtpMessage("Verification code sent successfully.");
+            setOtpMessage(
+                "Verification code sent successfully."
+            );
         } catch (error) {
-            setOtpError(error instanceof Error ? error.message : "Something went wrong");
+            setOtpError(
+                error instanceof Error
+                    ? error.message
+                    : "Something went wrong"
+            );
         } finally {
             setIsSendingOtp(false);
         }
@@ -371,7 +432,9 @@ export default function UserOnboardingForm() {
 
             const response = await fetch("/api/sms/verify-otp", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                     phone: normalizePhone(),
                     code: otpCode,
@@ -381,13 +444,22 @@ export default function UserOnboardingForm() {
             const result = await response.json();
 
             if (!response.ok || !result.success) {
-                throw new Error(result.message || "Invalid verification code");
+                throw new Error(
+                    result.message ||
+                        "Invalid verification code"
+                );
             }
 
             setIsPhoneVerified(true);
-            setOtpMessage("Phone number verified successfully.");
+            setOtpMessage(
+                "Phone number verified successfully."
+            );
         } catch (error) {
-            setOtpError(error instanceof Error ? error.message : "Something went wrong");
+            setOtpError(
+                error instanceof Error
+                    ? error.message
+                    : "Something went wrong"
+            );
         } finally {
             setIsVerifyingOtp(false);
         }
@@ -419,8 +491,9 @@ export default function UserOnboardingForm() {
                         </h1>
 
                         <p className="mt-4 text-[#cfc7b7]">
-                            Thank you for choosing SoHo Cleaning Group. Your booking request
-                            has been received successfully.
+                            Thank you for choosing SoHo Cleaning Group.
+                            Your booking request has been received
+                            successfully.
                         </p>
                     </div>
                 </div>
@@ -441,8 +514,9 @@ export default function UserOnboardingForm() {
                     </h1>
 
                     <p className="mx-auto mt-4 max-w-2xl text-[#d6d0c5]">
-                        Tell us about your home, choose your schedule, review your estimate,
-                        and securely authorize your card to reserve the booking.
+                        Tell us about your home, choose your
+                        schedule, review your estimate, and securely
+                        authorize your card to reserve the booking.
                     </p>
                 </div>
 
@@ -450,12 +524,19 @@ export default function UserOnboardingForm() {
                     {steps.map((item, index) => (
                         <div key={item}>
                             <div
-                                className={`h-2 rounded-full ${index <= step ? "bg-[#d6ab5f]" : "bg-[#2a2419]"
-                                    }`}
+                                className={`h-2 rounded-full ${
+                                    index <= step
+                                        ? "bg-[#d6ab5f]"
+                                        : "bg-[#2a2419]"
+                                }`}
                             />
+
                             <p
-                                className={`mt-2 text-center text-xs ${index <= step ? "text-[#d6ab5f]" : "text-[#7e7464]"
-                                    }`}
+                                className={`mt-2 text-center text-xs ${
+                                    index <= step
+                                        ? "text-[#d6ab5f]"
+                                        : "text-[#7e7464]"
+                                }`}
                             >
                                 {item}
                             </p>
@@ -472,92 +553,141 @@ export default function UserOnboardingForm() {
                                 </p>
 
                                 <div className="grid gap-4 md:grid-cols-2">
-                                    {serviceOptions.map((service) => {
-                                        const isSelected = formData.cleaningType === service.value;
+                                    {serviceOptions.map(
+                                        (service) => {
+                                            const isSelected =
+                                                formData.cleaningType ===
+                                                service.value;
 
-                                        return (
-                                            <button
-                                                key={service.value}
-                                                type="button"
-                                                onClick={() => updateField("cleaningType", service.value)}
-                                                className={`rounded-[24px] border p-5 text-left transition ${isSelected
-                                                    ? "border-[#d6ab5f] bg-[#151008] shadow-[0_18px_60px_rgba(214,171,95,0.12)]"
-                                                    : "border-[#2f291d] bg-[#111111] hover:border-[#8f6b2f]"
+                                            return (
+                                                <button
+                                                    key={
+                                                        service.value
+                                                    }
+                                                    type="button"
+                                                    onClick={() =>
+                                                        updateField(
+                                                            "cleaningType",
+                                                            service.value
+                                                        )
+                                                    }
+                                                    className={`rounded-[24px] border p-5 text-left transition ${
+                                                        isSelected
+                                                            ? "border-[#d6ab5f] bg-[#151008] shadow-[0_18px_60px_rgba(214,171,95,0.12)]"
+                                                            : "border-[#2f291d] bg-[#111111] hover:border-[#8f6b2f]"
                                                     }`}
-                                            >
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <div>
-                                                        <h2 className="font-serif text-2xl text-white">
-                                                            {service.label}
-                                                        </h2>
-                                                        <p className="mt-3 text-sm leading-7 text-[#cfc7b7]">
-                                                            {service.description}
-                                                        </p>
-                                                    </div>
+                                                >
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <h2 className="font-serif text-2xl text-white">
+                                                                {
+                                                                    service.label
+                                                                }
+                                                            </h2>
 
-                                                    <span className="text-xl text-[#d6ab5f]">
-                                                        {isSelected ? "✓" : "○"}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+                                                            <p className="mt-3 text-sm leading-7 text-[#cfc7b7]">
+                                                                {
+                                                                    service.description
+                                                                }
+                                                            </p>
+                                                        </div>
+
+                                                        <span className="text-xl text-[#d6ab5f]">
+                                                            {isSelected
+                                                                ? "✓"
+                                                                : "○"}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        }
+                                    )}
                                 </div>
                             </div>
 
                             {selectedService && (
                                 <>
-                                    <ServiceDetailsCard service={selectedService} />
+                                    <ServiceDetailsCard
+                                        service={selectedService}
+                                    />
+
                                     <div className="rounded-[24px] border border-[#3a2812] bg-[#111111] p-5">
                                         <p className="text-xs uppercase tracking-[0.24em] text-[#d6ab5f]">
                                             Optional Add-On Services
                                         </p>
 
                                         <p className="mt-3 text-sm leading-7 text-[#d8d0c1]">
-                                            Add extra services to your booking. These will be added to your final
-                                            total.
+                                            Add extra services to your
+                                            booking. These will be added
+                                            to your final total.
                                         </p>
 
                                         <div className="mt-5 grid gap-3">
-                                            {addOnOptions.map((addOn) => {
-                                                const isSelected = formData.selectedAddOns.includes(addOn.id);
+                                            {addOnOptions.map(
+                                                (addOn) => {
+                                                    const isSelected =
+                                                        formData.selectedAddOns.includes(
+                                                            addOn.id
+                                                        );
 
-                                                return (
-                                                    <button
-                                                        key={addOn.id}
-                                                        type="button"
-                                                        onClick={() => toggleAddOn(addOn.id)}
-                                                        className={`rounded-2xl border px-5 py-4 text-left transition ${isSelected
-                                                            ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
-                                                            : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                                    return (
+                                                        <button
+                                                            key={
+                                                                addOn.id
+                                                            }
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleAddOn(
+                                                                    addOn.id
+                                                                )
+                                                            }
+                                                            className={`rounded-2xl border px-5 py-4 text-left transition ${
+                                                                isSelected
+                                                                    ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                                                    : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
                                                             }`}
-                                                    >
-                                                        <div className="flex items-start justify-between gap-4">
-                                                            <div>
-                                                                <p className="text-sm font-semibold">
-                                                                    <span className="mr-2">{isSelected ? "✓" : "○"}</span>
-                                                                    {addOn.label}
-                                                                </p>
+                                                        >
+                                                            <div className="flex items-start justify-between gap-4">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold">
+                                                                        <span className="mr-2">
+                                                                            {isSelected
+                                                                                ? "✓"
+                                                                                : "○"}
+                                                                        </span>
+                                                                        {
+                                                                            addOn.label
+                                                                        }
+                                                                    </p>
 
-                                                                <p className="mt-2 text-sm leading-6 text-[#cfc7b7]">
-                                                                    {addOn.description}
+                                                                    <p className="mt-2 text-sm leading-6 text-[#cfc7b7]">
+                                                                        {
+                                                                            addOn.description
+                                                                        }
+                                                                    </p>
+                                                                </div>
+
+                                                                <p className="shrink-0 font-serif text-xl text-[#d6ab5f]">
+                                                                    +$
+                                                                    {
+                                                                        addOn.price
+                                                                    }
                                                                 </p>
                                                             </div>
-
-                                                            <p className="shrink-0 font-serif text-xl text-[#d6ab5f]">
-                                                                +${addOn.price}
-                                                            </p>
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
+                                                        </button>
+                                                    );
+                                                }
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="rounded-[24px] border border-[#3a2812] bg-[#111111] p-5">
                                         <p className="text-sm leading-7 text-[#d8d0c1]">
-                                            Before requesting a booking, please review our policies. By continuing,
-                                            you acknowledge that you have read and agree to our{" "}
+                                            Before requesting a booking,
+                                            please review our policies.
+                                            By continuing, you
+                                            acknowledge that you have
+                                            read and agree to our{" "}
                                             <a
                                                 href="/terms-and-conditions"
                                                 target="_blank"
@@ -590,22 +720,31 @@ export default function UserOnboardingForm() {
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    acceptedPolicies: !prev.acceptedPolicies,
-                                                }))
+                                                setFormData(
+                                                    (prev) => ({
+                                                        ...prev,
+                                                        acceptedPolicies:
+                                                            !prev.acceptedPolicies,
+                                                    })
+                                                )
                                             }
-                                            className={`mt-5 flex w-full items-start gap-3 rounded-2xl border px-5 py-4 text-left text-sm transition ${formData.acceptedPolicies
-                                                ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
-                                                : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
-                                                }`}
+                                            className={`mt-5 flex w-full items-start gap-3 rounded-2xl border px-5 py-4 text-left text-sm transition ${
+                                                formData.acceptedPolicies
+                                                    ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                                    : "border-[#2f291d] bg-[#0a0a0a] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                            }`}
                                         >
                                             <span className="mt-0.5">
-                                                {formData.acceptedPolicies ? "✓" : "○"}
+                                                {formData.acceptedPolicies
+                                                    ? "✓"
+                                                    : "○"}
                                             </span>
 
                                             <span>
-                                                I agree to the Terms & Conditions, Privacy Policy, and Refund Policy.
+                                                I agree to the Terms &
+                                                Conditions, Privacy
+                                                Policy, and Refund
+                                                Policy.
                                             </span>
                                         </button>
                                     </div>
@@ -613,19 +752,27 @@ export default function UserOnboardingForm() {
                             )}
                         </div>
                     )}
+
                     {step === 1 && (
                         <div className="grid gap-5">
                             <Input
                                 label="Full Name"
                                 value={formData.fullName}
-                                onChange={(value) => updateField("fullName", value)}
+                                onChange={(value) =>
+                                    updateField(
+                                        "fullName",
+                                        value
+                                    )
+                                }
                             />
 
                             <Input
                                 label="Email Address"
                                 type="email"
                                 value={formData.email}
-                                onChange={(value) => updateField("email", value)}
+                                onChange={(value) =>
+                                    updateField("email", value)
+                                }
                             />
 
                             <div>
@@ -637,7 +784,9 @@ export default function UserOnboardingForm() {
                                     <select
                                         value={countryCode}
                                         onChange={(event) => {
-                                            setCountryCode(event.target.value);
+                                            setCountryCode(
+                                                event.target.value
+                                            );
                                             setIsPhoneVerified(false);
                                             setIsOtpSent(false);
                                             setOtpCode("");
@@ -646,16 +795,29 @@ export default function UserOnboardingForm() {
                                         }}
                                         className="border-r border-[#2f291d] bg-[#111111] px-4 text-sm text-white outline-none"
                                     >
-                                        <option value="+1">🇺🇸 +1</option>
-                                        <option value="+91">🇮🇳 +91</option>
-                                        <option value="+44">🇬🇧 +44</option>
-                                        <option value="+971">🇦🇪 +971</option>
+                                        <option value="+1">
+                                            🇺🇸 +1
+                                        </option>
+                                        <option value="+91">
+                                            🇮🇳 +91
+                                        </option>
+                                        <option value="+44">
+                                            🇬🇧 +44
+                                        </option>
+                                        <option value="+971">
+                                            🇦🇪 +971
+                                        </option>
                                     </select>
 
                                     <input
                                         type="tel"
                                         value={formData.phone}
-                                        onChange={(event) => updateField("phone", event.target.value)}
+                                        onChange={(event) =>
+                                            updateField(
+                                                "phone",
+                                                event.target.value
+                                            )
+                                        }
                                         placeholder="6465300590"
                                         className="w-full bg-transparent px-4 py-4 text-sm text-white outline-none placeholder:text-[#8f8778]"
                                     />
@@ -663,40 +825,142 @@ export default function UserOnboardingForm() {
                                     <button
                                         type="button"
                                         onClick={sendOtp}
-                                        disabled={isSendingOtp || !formData.phone || isPhoneVerified}
+                                        disabled={
+                                            isSendingOtp ||
+                                            !formData.phone ||
+                                            !formData.acceptedSmsConsent ||
+                                            isPhoneVerified
+                                        }
                                         className="min-w-[120px] border-l border-[#2f291d] px-4 text-sm font-medium text-[#e3bd74] transition hover:bg-[#151008] disabled:cursor-not-allowed disabled:opacity-40"
                                     >
-                                        {isSendingOtp ? "Sending..." : isPhoneVerified ? "Verified" : "Send OTP"}
+                                        {isSendingOtp
+                                            ? "Sending..."
+                                            : isPhoneVerified
+                                              ? "Verified"
+                                              : "Send OTP"}
                                     </button>
                                 </div>
 
-                                {isOtpSent && !isPhoneVerified && (
-                                    <div className="mt-4 flex overflow-hidden rounded-2xl border border-[#2f291d] bg-[#111111] focus-within:border-[#d6ab5f]">
-                                        <input
-                                            type="text"
-                                            value={otpCode}
-                                            onChange={(event) => setOtpCode(event.target.value)}
-                                            placeholder="Enter OTP"
-                                            className="w-full bg-transparent px-4 py-4 text-sm text-white outline-none placeholder:text-[#8f8778]"
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={verifyOtp}
-                                            disabled={isVerifyingOtp || !otpCode}
-                                            className="min-w-[120px] bg-[#d6ab5f] px-4 text-sm font-semibold text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                                <div className="mt-4 rounded-[20px] border border-[#3a2812] bg-[#0c0a07] p-4">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setFormData(
+                                                (prev) => ({
+                                                    ...prev,
+                                                    acceptedSmsConsent:
+                                                        !prev.acceptedSmsConsent,
+                                                })
+                                            )
+                                        }
+                                        className="flex w-full items-start gap-3 text-left"
+                                    >
+                                        <span
+                                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs ${
+                                                formData.acceptedSmsConsent
+                                                    ? "border-[#d6ab5f] bg-[#d6ab5f] text-black"
+                                                    : "border-[#5b5141] text-transparent"
+                                            }`}
                                         >
-                                            {isVerifyingOtp ? "Verifying..." : "Verify"}
-                                        </button>
-                                    </div>
+                                            ✓
+                                        </span>
+
+                                        <span className="text-xs leading-6 text-[#b8ad9a]">
+                                            I agree to receive
+                                            transactional text messages
+                                            from SoHo Cleaning Group
+                                            regarding my booking,
+                                            verification, service
+                                            updates, cleaner assignment,
+                                            payment authorization,
+                                            payment status,
+                                            cancellations, and other
+                                            service-related
+                                            communications. Message
+                                            frequency varies. Message
+                                            and data rates may apply.
+                                            Reply STOP to opt out or
+                                            HELP for help. Consent is
+                                            not a condition of purchase.
+                                            See our{" "}
+                                            <a
+                                                href="/terms-and-conditions"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
+                                                }
+                                                className="font-medium text-[#d6ab5f] underline-offset-4 hover:underline"
+                                            >
+                                                Terms & Conditions
+                                            </a>{" "}
+                                            and{" "}
+                                            <a
+                                                href="/privacy-policy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(event) =>
+                                                    event.stopPropagation()
+                                                }
+                                                className="font-medium text-[#d6ab5f] underline-offset-4 hover:underline"
+                                            >
+                                                Privacy Policy
+                                            </a>
+                                            .
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {!formData.acceptedSmsConsent && (
+                                    <p className="mt-3 text-xs leading-6 text-[#8f8778]">
+                                        SMS consent is required before
+                                        we can send your phone
+                                        verification code.
+                                    </p>
                                 )}
 
+                                {isOtpSent &&
+                                    !isPhoneVerified && (
+                                        <div className="mt-4 flex overflow-hidden rounded-2xl border border-[#2f291d] bg-[#111111] focus-within:border-[#d6ab5f]">
+                                            <input
+                                                type="text"
+                                                value={otpCode}
+                                                onChange={(event) =>
+                                                    setOtpCode(
+                                                        event.target
+                                                            .value
+                                                    )
+                                                }
+                                                placeholder="Enter OTP"
+                                                className="w-full bg-transparent px-4 py-4 text-sm text-white outline-none placeholder:text-[#8f8778]"
+                                            />
+
+                                            <button
+                                                type="button"
+                                                onClick={verifyOtp}
+                                                disabled={
+                                                    isVerifyingOtp ||
+                                                    !otpCode
+                                                }
+                                                className="min-w-[120px] bg-[#d6ab5f] px-4 text-sm font-semibold text-black transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {isVerifyingOtp
+                                                    ? "Verifying..."
+                                                    : "Verify"}
+                                            </button>
+                                        </div>
+                                    )}
+
                                 {otpMessage && (
-                                    <p className="mt-3 text-sm text-green-300">{otpMessage}</p>
+                                    <p className="mt-3 text-sm text-green-300">
+                                        {otpMessage}
+                                    </p>
                                 )}
 
                                 {otpError && (
-                                    <p className="mt-3 text-sm text-red-300">{otpError}</p>
+                                    <p className="mt-3 text-sm text-red-300">
+                                        {otpError}
+                                    </p>
                                 )}
                             </div>
                         </div>
@@ -707,32 +971,57 @@ export default function UserOnboardingForm() {
                             <Input
                                 label="Street Address"
                                 value={formData.address}
-                                onChange={(value) => updateField("address", value)}
+                                onChange={(value) =>
+                                    updateField(
+                                        "address",
+                                        value
+                                    )
+                                }
                             />
 
                             <Input
                                 label="Apartment / Unit"
                                 value={formData.apartment}
-                                onChange={(value) => updateField("apartment", value)}
+                                onChange={(value) =>
+                                    updateField(
+                                        "apartment",
+                                        value
+                                    )
+                                }
                             />
 
                             <div className="grid gap-5 md:grid-cols-3">
                                 <Input
                                     label="City"
                                     value={formData.city}
-                                    onChange={(value) => updateField("city", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "city",
+                                            value
+                                        )
+                                    }
                                 />
 
                                 <Input
                                     label="State"
                                     value={formData.state}
-                                    onChange={(value) => updateField("state", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "state",
+                                            value
+                                        )
+                                    }
                                 />
 
                                 <Input
                                     label="Zip Code"
                                     value={formData.zipCode}
-                                    onChange={(value) => updateField("zipCode", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "zipCode",
+                                            value
+                                        )
+                                    }
                                 />
                             </div>
                         </div>
@@ -740,16 +1029,32 @@ export default function UserOnboardingForm() {
 
                     {step === 3 && (
                         <div className="grid gap-5">
-
                             <Select
                                 label="Home Size"
                                 value={formData.homeSize}
-                                onChange={(value) => updateField("homeSize", value)}
+                                onChange={(value) =>
+                                    updateField(
+                                        "homeSize",
+                                        value
+                                    )
+                                }
                                 options={[
-                                    { label: "1 BR", value: "1BHK" },
-                                    { label: "2 BR", value: "2BHK" },
-                                    { label: "3 BR", value: "3BHK" },
-                                    { label: "4 BR", value: "4BHK" },
+                                    {
+                                        label: "1 BR",
+                                        value: "1BHK",
+                                    },
+                                    {
+                                        label: "2 BR",
+                                        value: "2BHK",
+                                    },
+                                    {
+                                        label: "3 BR",
+                                        value: "3BHK",
+                                    },
+                                    {
+                                        label: "4 BR",
+                                        value: "4BHK",
+                                    },
                                 ]}
                             />
 
@@ -757,7 +1062,12 @@ export default function UserOnboardingForm() {
                                 label="Total Area (sqft)"
                                 type="number"
                                 value={formData.totalSqft}
-                                onChange={(value) => updateField("totalSqft", value)}
+                                onChange={(value) =>
+                                    updateField(
+                                        "totalSqft",
+                                        value
+                                    )
+                                }
                             />
 
                             <div className="grid gap-5 md:grid-cols-3">
@@ -765,21 +1075,36 @@ export default function UserOnboardingForm() {
                                     label="Bedrooms"
                                     type="number"
                                     value={formData.bedrooms}
-                                    onChange={(value) => updateField("bedrooms", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "bedrooms",
+                                            value
+                                        )
+                                    }
                                 />
 
                                 <Input
                                     label="Bathrooms"
                                     type="number"
                                     value={formData.bathrooms}
-                                    onChange={(value) => updateField("bathrooms", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "bathrooms",
+                                            value
+                                        )
+                                    }
                                 />
 
                                 <Input
                                     label="Kitchen"
                                     type="number"
                                     value={formData.kitchens}
-                                    onChange={(value) => updateField("kitchens", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "kitchens",
+                                            value
+                                        )
+                                    }
                                 />
                             </div>
 
@@ -787,11 +1112,25 @@ export default function UserOnboardingForm() {
                                 <Select
                                     label="Frequency"
                                     value={formData.frequency}
-                                    onChange={(value) => updateField("frequency", value)}
+                                    onChange={(value) =>
+                                        updateField(
+                                            "frequency",
+                                            value
+                                        )
+                                    }
                                     options={[
-                                        { label: "Weekly", value: "WEEKLY" },
-                                        { label: "Bi-Weekly", value: "BI_WEEKLY" },
-                                        { label: "Monthly", value: "MONTHLY" },
+                                        {
+                                            label: "Weekly",
+                                            value: "WEEKLY",
+                                        },
+                                        {
+                                            label: "Bi-Weekly",
+                                            value: "BI_WEEKLY",
+                                        },
+                                        {
+                                            label: "Monthly",
+                                            value: "MONTHLY",
+                                        },
                                     ]}
                                 />
                             )}
@@ -801,11 +1140,14 @@ export default function UserOnboardingForm() {
                                     <div className="flex items-center justify-between gap-5">
                                         <div>
                                             <p className="text-xs uppercase tracking-[0.22em] text-[#8f8778]">
-                                                Estimated Authorization
+                                                Estimated
+                                                Authorization
                                             </p>
 
                                             <p className="mt-2 text-sm text-[#cfc7b7]">
-                                                This amount will be authorized on your card to reserve the booking.
+                                                This amount will be
+                                                authorized on your card
+                                                to reserve the booking.
                                             </p>
                                         </div>
 
@@ -823,19 +1165,31 @@ export default function UserOnboardingForm() {
                             <div className="grid gap-5 md:grid-cols-2">
                                 <DatePickerField
                                     label="Preferred Date"
-                                    value={formData.preferredDate}
+                                    value={
+                                        formData.preferredDate
+                                    }
                                     onChange={(date) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            preferredDate: date,
-                                        }))
+                                        setFormData(
+                                            (prev) => ({
+                                                ...prev,
+                                                preferredDate:
+                                                    date,
+                                            })
+                                        )
                                     }
                                 />
 
                                 <Select
                                     label="Preferred Time Slot"
-                                    value={formData.preferredTime}
-                                    onChange={(value) => updateField("preferredTime", value)}
+                                    value={
+                                        formData.preferredTime
+                                    }
+                                    onChange={(value) =>
+                                        updateField(
+                                            "preferredTime",
+                                            value
+                                        )
+                                    }
                                     options={timeSlots}
                                 />
                             </div>
@@ -843,24 +1197,37 @@ export default function UserOnboardingForm() {
                             <button
                                 type="button"
                                 onClick={() =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        hasPets: !prev.hasPets,
-                                    }))
+                                    setFormData(
+                                        (prev) => ({
+                                            ...prev,
+                                            hasPets:
+                                                !prev.hasPets,
+                                        })
+                                    )
                                 }
-                                className={`rounded-2xl border px-5 py-4 text-left text-sm transition ${formData.hasPets
-                                    ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
-                                    : "border-[#2f291d] bg-[#111111] text-[#d8d0c1] hover:border-[#8f6b2f]"
-                                    }`}
+                                className={`rounded-2xl border px-5 py-4 text-left text-sm transition ${
+                                    formData.hasPets
+                                        ? "border-[#d6ab5f] bg-[#151008] text-[#d6ab5f]"
+                                        : "border-[#2f291d] bg-[#111111] text-[#d8d0c1] hover:border-[#8f6b2f]"
+                                }`}
                             >
-                                <span className="mr-2">{formData.hasPets ? "✓" : "○"}</span>
+                                <span className="mr-2">
+                                    {formData.hasPets
+                                        ? "✓"
+                                        : "○"}
+                                </span>
                                 Do you have pets?
                             </button>
 
                             <Textarea
                                 label="Special Notes"
                                 value={formData.specialNotes}
-                                onChange={(value) => updateField("specialNotes", value)}
+                                onChange={(value) =>
+                                    updateField(
+                                        "specialNotes",
+                                        value
+                                    )
+                                }
                             />
                         </div>
                     )}
@@ -873,57 +1240,96 @@ export default function UserOnboardingForm() {
                                 </h2>
 
                                 <p className="mt-2 text-sm leading-7 text-[#cfc7b7]">
-                                    Please review your booking details before securely authorizing your
-                                    card.
+                                    Please review your booking
+                                    details before securely
+                                    authorizing your card.
                                 </p>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2">
                                 <CompactReviewItem
                                     label="Service"
-                                    value={selectedService?.label || "Not selected"}
+                                    value={
+                                        selectedService?.label ||
+                                        "Not selected"
+                                    }
                                 />
+
                                 <CompactReviewItem
                                     label="Add-On Services"
                                     value={
                                         selectedAddOns.length
-                                            ? selectedAddOns.map((addOn) => `${addOn.label} (+$${addOn.price})`).join(", ")
+                                            ? selectedAddOns
+                                                  .map(
+                                                      (addOn) =>
+                                                          `${addOn.label} (+$${addOn.price})`
+                                                  )
+                                                  .join(", ")
                                             : "None"
                                     }
                                 />
+
                                 {isRecurringService && (
                                     <CompactReviewItem
                                         label="Frequency"
                                         value={
-                                            formData.frequency === "BI_WEEKLY"
+                                            formData.frequency ===
+                                            "BI_WEEKLY"
                                                 ? "Bi-Weekly"
-                                                : formData.frequency === "WEEKLY"
-                                                    ? "Weekly"
-                                                    : "Monthly"
+                                                : formData.frequency ===
+                                                    "WEEKLY"
+                                                  ? "Weekly"
+                                                  : "Monthly"
                                         }
                                     />
                                 )}
-                                <CompactReviewItem label="Name" value={formData.fullName} />
-                                <CompactReviewItem label="Email" value={formData.email} />
-                                <CompactReviewItem label="Phone" value={normalizePhone()} />
+
+                                <CompactReviewItem
+                                    label="Name"
+                                    value={formData.fullName}
+                                />
+
+                                <CompactReviewItem
+                                    label="Email"
+                                    value={formData.email}
+                                />
+
+                                <CompactReviewItem
+                                    label="Phone"
+                                    value={normalizePhone()}
+                                />
+
                                 <CompactReviewItem
                                     label="Address"
-                                    value={`${formData.address}, ${formData.apartment || ""}`}
+                                    value={`${formData.address}, ${
+                                        formData.apartment || ""
+                                    }`}
                                 />
+
                                 <CompactReviewItem
                                     label="City / State / Zip"
                                     value={`${formData.city}, ${formData.state} ${formData.zipCode}`}
                                 />
+
                                 <CompactReviewItem
                                     label="Schedule"
-                                    value={`${formData.preferredDate
-                                        ? formData.preferredDate.toDateString()
-                                        : "Not selected"
-                                        } · ${formData.preferredTime || "No time selected"}`}
+                                    value={`${
+                                        formData.preferredDate
+                                            ? formData.preferredDate.toDateString()
+                                            : "Not selected"
+                                    } · ${
+                                        formData.preferredTime ||
+                                        "No time selected"
+                                    }`}
                                 />
+
                                 <CompactReviewItem
                                     label="Pets"
-                                    value={formData.hasPets ? "Yes" : "No"}
+                                    value={
+                                        formData.hasPets
+                                            ? "Yes"
+                                            : "No"
+                                    }
                                 />
                             </div>
 
@@ -935,53 +1341,87 @@ export default function UserOnboardingForm() {
                                         </h3>
 
                                         <p className="mt-2 text-sm text-[#cfc7b7]">
-                                            Your authorization amount is calculated based on the selected service,
-                                            home size, total area, and optional add-ons.
+                                            Your authorization amount
+                                            is calculated based on the
+                                            selected service, home size,
+                                            total area, and optional
+                                            add-ons.
                                         </p>
                                     </div>
 
                                     <div className="space-y-5 px-6 py-6">
-                                        <SummaryRow label="Service" value={pricing.serviceLabel} />
-                                        <SummaryRow label="Home Size" value={pricing.homeSizeLabel} />
+                                        <SummaryRow
+                                            label="Service"
+                                            value={
+                                                pricing.serviceLabel
+                                            }
+                                        />
+
+                                        <SummaryRow
+                                            label="Home Size"
+                                            value={
+                                                pricing.homeSizeLabel
+                                            }
+                                        />
+
                                         <SummaryRow
                                             label="Entered Area"
                                             value={`${pricing.totalSqft} sqft`}
                                         />
+
                                         <SummaryRow
                                             label="Included Area"
                                             value={`${pricing.includedSqft} sqft`}
                                         />
+
                                         <SummaryRow
                                             label="Extra Area"
                                             value={`${pricing.extraSqft} sqft`}
                                         />
+
                                         <SummaryRow
                                             label="Extra Area Charge"
                                             value={`$${pricing.extraSqftCharge}`}
                                         />
-                                        {selectedAddOns.map((addOn) => (
-                                            <SummaryRow
-                                                key={addOn.id}
-                                                label={addOn.label}
-                                                value={`+$${addOn.price}`}
-                                            />
-                                        ))}
+
+                                        {selectedAddOns.map(
+                                            (addOn) => (
+                                                <SummaryRow
+                                                    key={
+                                                        addOn.id
+                                                    }
+                                                    label={
+                                                        addOn.label
+                                                    }
+                                                    value={`+$${addOn.price}`}
+                                                />
+                                            )
+                                        )}
 
                                         <div className="border-t border-[#3a2812] pt-5">
                                             <div className="flex items-center justify-between gap-5">
                                                 <div>
                                                     <p className="text-lg font-medium text-[#f3eadb]">
-                                                        Card Authorization Amount
+                                                        Card
+                                                        Authorization
+                                                        Amount
                                                     </p>
 
                                                     <p className="mt-1 text-xs leading-6 text-[#8f8778]">
-                                                        The final payment will be captured after your cleaning is
+                                                        The final
+                                                        payment will
+                                                        be captured
+                                                        after your
+                                                        cleaning is
                                                         completed.
                                                     </p>
                                                 </div>
 
                                                 <span className="shrink-0 font-serif text-4xl text-[#d6ab5f]">
-                                                    ${finalTotal}
+                                                    $
+                                                    {
+                                                        finalTotal
+                                                    }
                                                 </span>
                                             </div>
                                         </div>
@@ -997,19 +1437,29 @@ export default function UserOnboardingForm() {
 
                                     <div>
                                         <p className="text-sm font-semibold text-[#e3bd74]">
-                                            Secure card authorization
+                                            Secure card
+                                            authorization
                                         </p>
 
                                         <p className="mt-2 text-sm leading-7 text-[#cfc7b7]">
-                                            Your card will be authorized for ${finalTotal} when you
-                                            complete checkout. A temporary pending hold may appear on your
-                                            account, but the payment will not be captured until your
-                                            cleaning service has been completed.
+                                            Your card will be
+                                            authorized for $
+                                            {finalTotal} when you
+                                            complete checkout. A
+                                            temporary pending hold may
+                                            appear on your account, but
+                                            the payment will not be
+                                            captured until your
+                                            cleaning service has been
+                                            completed.
                                         </p>
 
                                         <p className="mt-3 text-xs leading-6 text-[#8f8778]">
-                                            If the booking is cancelled before capture, the authorization
-                                            will be released instead of being charged.
+                                            If the booking is cancelled
+                                            before capture, the
+                                            authorization will be
+                                            released instead of being
+                                            charged.
                                         </p>
                                     </div>
                                 </div>
@@ -1021,7 +1471,8 @@ export default function UserOnboardingForm() {
                                 </p>
 
                                 <p className="mt-3 text-sm leading-7 text-[#f3eadb]">
-                                    {formData.specialNotes || "No special notes added."}
+                                    {formData.specialNotes ||
+                                        "No special notes added."}
                                 </p>
                             </div>
                         </div>
@@ -1051,8 +1502,12 @@ export default function UserOnboardingForm() {
                                 type="button"
                                 onClick={nextStep}
                                 disabled={
-                                    (step === 0 && (!formData.cleaningType || !formData.acceptedPolicies)) ||
-                                    (step === 1 && !isPhoneVerified)
+                                    (step === 0 &&
+                                        (!formData.cleaningType ||
+                                            !formData.acceptedPolicies)) ||
+                                    (step === 1 &&
+                                        (!formData.acceptedSmsConsent ||
+                                            !isPhoneVerified))
                                 }
                                 className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -1062,7 +1517,9 @@ export default function UserOnboardingForm() {
                             <button
                                 type="button"
                                 onClick={submitForm}
-                                disabled={isSubmitting || !pricing}
+                                disabled={
+                                    isSubmitting || !pricing
+                                }
                                 className="rounded-2xl bg-[#d6ab5f] px-6 py-3 text-sm font-semibold text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {isSubmitting
@@ -1097,7 +1554,9 @@ function Input({
             <input
                 type={type}
                 value={value}
-                onChange={(event) => onChange(event.target.value)}
+                onChange={(event) =>
+                    onChange(event.target.value)
+                }
                 className={inputClass}
             />
         </label>
@@ -1113,7 +1572,10 @@ function Select({
     label: string;
     value: string;
     onChange: (value: string) => void;
-    options: Array<{ label: string; value: string }>;
+    options: Array<{
+        label: string;
+        value: string;
+    }>;
 }) {
     return (
         <label className="block">
@@ -1123,13 +1585,20 @@ function Select({
 
             <select
                 value={value}
-                onChange={(event) => onChange(event.target.value)}
+                onChange={(event) =>
+                    onChange(event.target.value)
+                }
                 className={inputClass}
             >
-                <option value="">Select {label}</option>
+                <option value="">
+                    Select {label}
+                </option>
 
                 {options.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option
+                        key={option.value}
+                        value={option.value}
+                    >
                         {option.label}
                     </option>
                 ))}
@@ -1155,7 +1624,9 @@ function Textarea({
 
             <textarea
                 value={value}
-                onChange={(event) => onChange(event.target.value)}
+                onChange={(event) =>
+                    onChange(event.target.value)
+                }
                 rows={5}
                 className={`${inputClass} resize-none`}
             />
@@ -1211,14 +1682,22 @@ function CompactReviewItem({
     );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({
+    label,
+    value,
+}: {
+    label: string;
+    value: string;
+}) {
     return (
         <div className="flex items-center justify-between gap-5">
             <span className="text-sm uppercase tracking-[0.18em] text-[#8f8778]">
                 {label}
             </span>
 
-            <span className="text-base text-[#f1e7d7]">{value}</span>
+            <span className="text-base text-[#f1e7d7]">
+                {value}
+            </span>
         </div>
     );
 }
@@ -1241,9 +1720,11 @@ function ServiceDetailsCard({
                 <p className="text-xs uppercase tracking-[0.24em] text-[#b7924c]">
                     Service Details
                 </p>
+
                 <h3 className="mt-2 font-serif text-3xl text-white">
                     {service.label}
                 </h3>
+
                 <p className="mt-3 text-sm leading-7 text-[#cfc7b7]">
                     {service.description}
                 </p>
@@ -1254,13 +1735,16 @@ function ServiceDetailsCard({
                     <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-[#d6ab5f]">
                         What’s Included
                     </h4>
+
                     <div className="grid gap-3">
                         {service.included.map((item) => (
                             <div
                                 key={item}
                                 className="rounded-2xl border border-[#2f291d] bg-[#111111] p-4 text-sm leading-7 text-[#f3eadb]"
                             >
-                                <span className="mr-2 text-[#d6ab5f]">✓</span>
+                                <span className="mr-2 text-[#d6ab5f]">
+                                    ✓
+                                </span>
                                 {item}
                             </div>
                         ))}
@@ -1271,15 +1755,18 @@ function ServiceDetailsCard({
                     <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-[#d6ab5f]">
                         Usually Not Included
                     </h4>
+
                     <div className="grid gap-2">
-                        {service.notIncluded.map((item) => (
-                            <div
-                                key={item}
-                                className="rounded-xl border border-[#2f291d] bg-[#111111] px-4 py-3 text-sm text-[#cfc7b7]"
-                            >
-                                {item}
-                            </div>
-                        ))}
+                        {service.notIncluded.map(
+                            (item) => (
+                                <div
+                                    key={item}
+                                    className="rounded-xl border border-[#2f291d] bg-[#111111] px-4 py-3 text-sm text-[#cfc7b7]"
+                                >
+                                    {item}
+                                </div>
+                            )
+                        )}
                     </div>
                 </div>
             </div>
@@ -1288,10 +1775,12 @@ function ServiceDetailsCard({
                 <p className="text-xs uppercase tracking-[0.22em] text-[#8f8778]">
                     Disclaimer
                 </p>
+
                 <p className="mt-2 text-sm leading-7 text-[#cfc7b7]">
                     {service.disclaimer}
                 </p>
             </div>
+
             <div className="border-t border-[#3a2812] px-6 py-5">
                 <p className="text-sm font-medium text-[#d6ab5f]">
                     Selected Service: {service.label} ✓
@@ -1308,7 +1797,9 @@ function ServiceDetailsCard({
                             key={point}
                             className="rounded-2xl border border-[#2f291d] bg-[#111111] px-4 py-3 text-sm text-[#f3eadb]"
                         >
-                            <span className="mr-2 text-[#d6ab5f]">✓</span>
+                            <span className="mr-2 text-[#d6ab5f]">
+                                ✓
+                            </span>
                             {point}
                         </div>
                     ))}
