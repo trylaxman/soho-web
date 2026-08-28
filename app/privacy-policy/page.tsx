@@ -26,7 +26,18 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="4. SMS Communications">
-            By submitting your phone number, you agree to receive service-related SMS messages such as OTP verification, booking confirmations, status updates, and professional application updates.
+            When you provide your mobile phone number and consent to receive text
+            messages from SoHo Cleaning Group, we may send transactional and
+            service-related SMS messages concerning your requested services. These
+            messages may include phone verification, booking confirmations, booking
+            status updates, cleaning professional assignment notifications, payment
+            authorization and payment status updates, cancellation notices,
+            professional application updates, and other communications related to
+            services you have requested. Message frequency varies based on your
+            booking or account activity. Message and data rates may apply. You may
+            reply STOP to opt out of SMS communications at any time or HELP for
+            assistance. Consent to receive SMS messages is not a condition of
+            purchase.
           </Section>
 
           <Section title="5. Professional Documents">
@@ -34,7 +45,15 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="6. Data Sharing">
-            We do not sell personal information. We may share necessary information with service providers such as Stripe, Twilio, Supabase, or operational partners required to provide our services.
+            We do not sell your personal information. We may share information with
+            service providers that process information on our behalf when necessary
+            to operate our business and provide requested services, including
+            payment processing, communications, hosting, and other operational
+            services. Mobile information, including phone numbers and SMS consent
+            information, will not be shared with third parties or affiliates for
+            marketing or promotional purposes. SMS opt-in data and consent will not
+            be sold, rented, or shared with third parties for their own marketing
+            purposes.
           </Section>
 
           <Section title="7. Data Security">

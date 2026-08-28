@@ -26,9 +26,14 @@ export default function TermsAndConditionsPage() {
           </Section>
 
           <Section title="3. Payments">
-            Payments are processed securely through Stripe. A booking is only
-            submitted after successful payment. Pricing may vary based on
-            service type, home size, square footage, and requested services.
+            Payments are processed securely through Stripe. When a booking is
+            submitted, your card may be authorized for the estimated booking amount
+            without being immediately charged. The authorization may appear as a
+            temporary pending hold on your account. Payment is generally captured
+            after the cleaning service is completed. If the final service amount
+            changes, we may request an additional authorization before capturing
+            payment. Pricing may vary based on service type, home size, square
+            footage, selected add-ons, property condition, and requested services.
           </Section>
 
           <Section title="4. Access to Property">
@@ -119,7 +124,21 @@ export default function TermsAndConditionsPage() {
             discretion, and professionalism.
           </Section>
 
-          <Section title="16. Changes to Terms">
+          <Section title="16. SMS Communications">
+            By providing your mobile phone number and consenting to receive text
+            messages from SoHo Cleaning Group, you agree to receive transactional
+            and service-related SMS messages regarding services you request. These
+            may include verification messages, booking confirmations, booking
+            status updates, cleaning professional assignment notifications, payment
+            authorization and payment status updates, cancellation notices, and
+            other service-related communications. Message frequency varies based on
+            your booking or account activity. Message and data rates may apply. Reply
+            STOP to opt out at any time or HELP for assistance. Consent to receive
+            SMS messages is not a condition of purchase. For information about how
+            we handle your information, please review our Privacy Policy.
+          </Section>
+
+          <Section title="17. Changes to Terms">
             SoHo Cleaning Group may update these Terms and Conditions from time
             to time. Continued use of our services means you accept the updated
             terms.
