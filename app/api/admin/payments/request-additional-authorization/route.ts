@@ -7,10 +7,7 @@ import {
 } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import {
-  getAdditionalAuthorizationSmsBody,
-  sendSms,
-} from "@/lib/twilio";
+import { notifyAdditionalAuthorizationRequested } from "@/lib/customer-notifications";
 
 const ADMIN_SESSION_COOKIE = "soho_admin_session";
 const REQUEST_EXPIRY_HOURS = 24;
@@ -254,30 +251,42 @@ export async function POST(req: Request) {
     const authorizationLink =
       `${appUrl}/authorize-additional/${authorizationRequest.token}`;
 
-    const smsSent = await sendSms({
-      to: payment.booking.userProfile.phone,
-      body: getAdditionalAuthorizationSmsBody({
+    /*
+     * SMS and email are sent independently through the shared notification
+     * layer. The authorization request itself remains persisted even if
+     * one or both notification channels fail.
+     */
+    const notificationResult =
+      await notifyAdditionalAuthorizationRequested({
+        phone: payment.booking.userProfile.phone,
+        email: payment.booking.userProfile.email,
+        customerName:
+          payment.booking.userProfile.fullName,
         additionalAmount,
         finalAmount: normalizedFinalAmount,
         reason:
           authorizationRequest.reason || undefined,
         authorizationLink,
         expiresInHours: REQUEST_EXPIRY_HOURS,
-      }),
-    });
+      });
 
     /*
-     * Preserve the request even if Twilio fails. The admin can resend the
-     * same secure URL later.
+     * If both channels fail, preserve the authorization request so the
+     * admin can resend the same secure URL later.
      */
-    if (!smsSent) {
+    if (
+      !notificationResult.smsSent &&
+      !notificationResult.emailSent
+    ) {
       console.error(
-        "ADDITIONAL_AUTHORIZATION_SMS_FAILED",
+        "ADDITIONAL_AUTHORIZATION_NOTIFICATION_FAILED",
         {
           requestId: authorizationRequest.id,
           bookingId: payment.bookingId,
           phone:
             payment.booking.userProfile.phone,
+          email:
+            payment.booking.userProfile.email,
           wasUpdated,
         }
       );
@@ -288,8 +297,8 @@ export async function POST(req: Request) {
           requestCreated: !wasUpdated,
           requestUpdated: wasUpdated,
           message: wasUpdated
-            ? "The pending authorization request was updated, but the SMS could not be sent."
-            : "The authorization request was created, but the SMS could not be sent.",
+            ? "The pending authorization request was updated, but we were unable to notify the customer by SMS or email."
+            : "The authorization request was created, but we were unable to notify the customer by SMS or email.",
           data: {
             requestId:
               authorizationRequest.id,
@@ -301,9 +310,41 @@ export async function POST(req: Request) {
               normalizedFinalAmount,
             expiresAt:
               authorizationRequest.expiresAt,
+            notifications: {
+              smsSent:
+                notificationResult.smsSent,
+              emailSent:
+                notificationResult.emailSent,
+            },
           },
         },
         { status: 502 }
+      );
+    }
+
+    /*
+     * One channel failing is treated as partial delivery rather than
+     * complete failure.
+     */
+    if (
+      !notificationResult.smsSent ||
+      !notificationResult.emailSent
+    ) {
+      console.warn(
+        "ADDITIONAL_AUTHORIZATION_NOTIFICATION_PARTIAL_FAILURE",
+        {
+          requestId: authorizationRequest.id,
+          bookingId: payment.bookingId,
+          phone:
+            payment.booking.userProfile.phone,
+          email:
+            payment.booking.userProfile.email,
+          smsSent:
+            notificationResult.smsSent,
+          emailSent:
+            notificationResult.emailSent,
+          wasUpdated,
+        }
       );
     }
 
@@ -325,6 +366,12 @@ export async function POST(req: Request) {
         expiresAt:
           authorizationRequest.expiresAt,
         tokenReused: wasUpdated,
+        notifications: {
+          smsSent:
+            notificationResult.smsSent,
+          emailSent:
+            notificationResult.emailSent,
+        },
       }
     );
 
@@ -347,6 +394,12 @@ export async function POST(req: Request) {
           normalizedFinalAmount,
         expiresAt:
           authorizationRequest.expiresAt,
+        notifications: {
+          smsSent:
+            notificationResult.smsSent,
+          emailSent:
+            notificationResult.emailSent,
+        },
       },
     });
   } catch (error) {

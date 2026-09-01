@@ -6,10 +6,7 @@ import {
   ProfessionalStatus,
 } from "@prisma/client";
 
-import {
-  sendSms,
-  getProfessionalApplicationReceivedSmsBody,
-} from "@/lib/twilio";
+import { notifyProfessionalApplicationReceived } from "@/lib/customer-notifications";
 
 export async function POST(req: Request) {
   try {
@@ -34,10 +31,12 @@ export async function POST(req: Request) {
         bio: body.bio,
         status: ProfessionalStatus.PENDING,
 
-        idDocumentType: body.idDocumentType as ProfessionalIdDocumentType,
+        idDocumentType:
+          body.idDocumentType as ProfessionalIdDocumentType,
         idDocumentFrontUrl: body.idDocumentFrontUrl,
         idDocumentBackUrl: body.idDocumentBackUrl,
-        idDocumentStatus: ProfessionalIdDocumentStatus.PENDING,
+        idDocumentStatus:
+          ProfessionalIdDocumentStatus.PENDING,
         idDocumentReuploadToken: null,
         idDocumentReuploadExpiresAt: null,
       },
@@ -57,25 +56,55 @@ export async function POST(req: Request) {
         bio: body.bio,
         status: ProfessionalStatus.PENDING,
 
-        idDocumentType: body.idDocumentType as ProfessionalIdDocumentType,
+        idDocumentType:
+          body.idDocumentType as ProfessionalIdDocumentType,
         idDocumentFrontUrl: body.idDocumentFrontUrl,
         idDocumentBackUrl: body.idDocumentBackUrl,
-        idDocumentStatus: ProfessionalIdDocumentStatus.PENDING,
+        idDocumentStatus:
+          ProfessionalIdDocumentStatus.PENDING,
       },
     });
 
-    await sendSms({
-      to: professional.phone,
-      body: getProfessionalApplicationReceivedSmsBody(),
-    });
+    /*
+     * Notification failure must not invalidate a successfully submitted
+     * professional application.
+     */
+    const notificationResult =
+      await notifyProfessionalApplicationReceived({
+        phone: professional.phone,
+        email: professional.email,
+        professionalName: professional.fullName,
+      });
+
+    if (
+      !notificationResult.smsSent ||
+      !notificationResult.emailSent
+    ) {
+      console.warn(
+        "PROFESSIONAL_APPLICATION_NOTIFICATION_PARTIAL_FAILURE",
+        {
+          professionalId: professional.id,
+          smsSent: notificationResult.smsSent,
+          emailSent: notificationResult.emailSent,
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Professional onboarding submitted successfully.",
+      message:
+        "Professional onboarding submitted successfully.",
       data: professional,
+      notifications: {
+        smsSent: notificationResult.smsSent,
+        emailSent: notificationResult.emailSent,
+      },
     });
   } catch (error) {
-    console.error("PROFESSIONAL_ONBOARDING_ERROR", error);
+    console.error(
+      "PROFESSIONAL_ONBOARDING_ERROR",
+      error
+    );
 
     return NextResponse.json(
       {
