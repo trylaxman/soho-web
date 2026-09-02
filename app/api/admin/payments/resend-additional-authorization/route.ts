@@ -3,12 +3,10 @@ import { NextResponse } from "next/server";
 import { AdditionalAuthorizationStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-import {
-  getAdditionalAuthorizationSmsBody,
-  sendSms,
-} from "@/lib/twilio";
+import { notifyAdditionalAuthorizationRequested } from "@/lib/customer-notifications";
 
 const ADMIN_SESSION_COOKIE = "soho_admin_session";
+const REQUEST_EXPIRY_HOURS = 24;
 
 export async function POST(req: Request) {
   try {
@@ -130,28 +128,96 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_APP_URL ||
       "http://localhost:3000";
 
-    const authorizationLink = `${appUrl}/authorize-additional/${authorization.token}`;
+    /*
+     * Important:
+     * Resending does NOT create a new token or request.
+     * The customer receives the same secure authorization URL.
+     */
+    const authorizationLink =
+      `${appUrl}/authorize-additional/${authorization.token}`;
 
-    const smsSent = await sendSms({
-      to: authorization.booking.userProfile.phone,
-      body: getAdditionalAuthorizationSmsBody({
+    const notificationResult =
+      await notifyAdditionalAuthorizationRequested({
+        phone:
+          authorization.booking.userProfile.phone,
+        email:
+          authorization.booking.userProfile.email,
+        customerName:
+          authorization.booking.userProfile.fullName,
         additionalAmount:
           authorization.additionalAmount,
         finalAmount,
         reason:
           authorization.reason || undefined,
         authorizationLink,
-      }),
-    });
+        expiresInHours: REQUEST_EXPIRY_HOURS,
+      });
 
-    if (!smsSent) {
+    /*
+     * The existing authorization request remains valid even if both
+     * notification providers fail, so the admin can try resending again.
+     */
+    if (
+      !notificationResult.smsSent &&
+      !notificationResult.emailSent
+    ) {
+      console.error(
+        "ADDITIONAL_AUTHORIZATION_RESEND_NOTIFICATION_FAILED",
+        {
+          requestId: authorization.id,
+          bookingId: authorization.bookingId,
+          phone:
+            authorization.booking.userProfile.phone,
+          email:
+            authorization.booking.userProfile.email,
+        }
+      );
+
       return NextResponse.json(
         {
           success: false,
           message:
-            "Unable to resend the authorization SMS.",
+            "The authorization request is still active, but we were unable to resend it by SMS or email.",
+          data: {
+            requestId: authorization.id,
+            authorizationLink,
+            additionalAmount:
+              authorization.additionalAmount,
+            finalAmount,
+            expiresAt: authorization.expiresAt,
+            notifications: {
+              smsSent:
+                notificationResult.smsSent,
+              emailSent:
+                notificationResult.emailSent,
+            },
+          },
         },
         { status: 502 }
+      );
+    }
+
+    /*
+     * One successful channel is enough to treat the resend as delivered.
+     */
+    if (
+      !notificationResult.smsSent ||
+      !notificationResult.emailSent
+    ) {
+      console.warn(
+        "ADDITIONAL_AUTHORIZATION_RESEND_PARTIAL_FAILURE",
+        {
+          requestId: authorization.id,
+          bookingId: authorization.bookingId,
+          phone:
+            authorization.booking.userProfile.phone,
+          email:
+            authorization.booking.userProfile.email,
+          smsSent:
+            notificationResult.smsSent,
+          emailSent:
+            notificationResult.emailSent,
+        }
       );
     }
 
@@ -162,13 +228,39 @@ export async function POST(req: Request) {
         bookingId: authorization.bookingId,
         phone:
           authorization.booking.userProfile.phone,
+        email:
+          authorization.booking.userProfile.email,
+        notifications: {
+          smsSent:
+            notificationResult.smsSent,
+          emailSent:
+            notificationResult.emailSent,
+        },
       }
     );
 
     return NextResponse.json({
       success: true,
       message:
-        "Authorization link has been resent successfully.",
+        notificationResult.smsSent &&
+        notificationResult.emailSent
+          ? "Authorization link has been resent successfully by SMS and email."
+          : notificationResult.smsSent
+            ? "Authorization link has been resent successfully by SMS."
+            : "Authorization link has been resent successfully by email.",
+      data: {
+        requestId: authorization.id,
+        additionalAmount:
+          authorization.additionalAmount,
+        finalAmount,
+        expiresAt: authorization.expiresAt,
+        notifications: {
+          smsSent:
+            notificationResult.smsSent,
+          emailSent:
+            notificationResult.emailSent,
+        },
+      },
     });
   } catch (error) {
     console.error(

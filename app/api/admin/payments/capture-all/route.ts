@@ -7,10 +7,7 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import {
-  getPaymentCapturedSmsBody,
-  sendSms,
-} from "@/lib/twilio";
+import { notifyPaymentCaptured } from "@/lib/customer-notifications";
 
 const ADMIN_SESSION_COOKIE = "soho_admin_session";
 
@@ -191,7 +188,7 @@ export async function POST(req: Request) {
             paidAt: payment.paidAt || new Date(),
             transactionId:
               typeof paymentIntent.latest_charge ===
-              "string"
+                "string"
                 ? paymentIntent.latest_charge
                 : payment.transactionId,
           },
@@ -384,7 +381,7 @@ export async function POST(req: Request) {
             paidAt: payment.paidAt || new Date(),
             transactionId:
               typeof paymentIntent.latest_charge ===
-              "string"
+                "string"
                 ? paymentIntent.latest_charge
                 : payment.transactionId,
           },
@@ -393,7 +390,7 @@ export async function POST(req: Request) {
         remainingToCaptureInCents = Math.max(
           0,
           remainingToCaptureInCents -
-            capturedAmountInCents
+          capturedAmountInCents
         );
 
         capturedPaymentIds.push(payment.id);
@@ -536,7 +533,7 @@ export async function POST(req: Request) {
           paidAt: new Date(),
           transactionId:
             typeof capturedIntent.latest_charge ===
-            "string"
+              "string"
               ? capturedIntent.latest_charge
               : payment.transactionId,
         },
@@ -545,7 +542,7 @@ export async function POST(req: Request) {
       remainingToCaptureInCents = Math.max(
         0,
         remainingToCaptureInCents -
-          actualCapturedInCents
+        actualCapturedInCents
       );
 
       capturedPaymentIds.push(payment.id);
@@ -631,23 +628,26 @@ export async function POST(req: Request) {
      * A Twilio failure must not turn a successful financial operation
      * into an API failure.
      */
-    const smsSent = await sendSms({
-      to: finalBooking.userProfile.phone,
-      body: getPaymentCapturedSmsBody({
+    const notificationResult =
+      await notifyPaymentCaptured({
+        phone: finalBooking.userProfile.phone,
+        email: finalBooking.userProfile.email,
+        customerName:
+          finalBooking.userProfile.fullName,
         amount: finalCapturedInCents / 100,
         currency,
-      }),
-    });
+      });
 
-    if (!smsSent) {
-      console.error(
-        "CAPTURE_ALL_CONFIRMATION_SMS_FAILED",
+    if (
+      !notificationResult.smsSent ||
+      !notificationResult.emailSent
+    ) {
+      console.warn(
+        "PAYMENT_CAPTURED_NOTIFICATION_PARTIAL_FAILURE",
         {
-          bookingId,
-          customerPhone:
-            finalBooking.userProfile.phone,
-          capturedAmount:
-            finalCapturedInCents / 100,
+          bookingId: finalBooking.id,
+          smsSent: notificationResult.smsSent,
+          emailSent: notificationResult.emailSent,
         }
       );
     }
@@ -671,13 +671,13 @@ export async function POST(req: Request) {
       message:
         releasedPaymentIds.length > 0
           ? `${formatCurrency(
-              finalCapturedInCents,
-              currency
-            )} captured successfully. Unused authorizations were released.`
+            finalCapturedInCents,
+            currency
+          )} captured successfully. Unused authorizations were released.`
           : `${formatCurrency(
-              finalCapturedInCents,
-              currency
-            )} captured successfully.`,
+            finalCapturedInCents,
+            currency
+          )} captured successfully.`,
       data: {
         bookingId,
         capturedAmount:
@@ -685,7 +685,10 @@ export async function POST(req: Request) {
         currency,
         capturedPaymentIds,
         releasedPaymentIds,
-        smsSent,
+        notifications: {
+          smsSent: notificationResult.smsSent,
+          emailSent: notificationResult.emailSent,
+        },
       },
     });
   } catch (error) {

@@ -7,10 +7,7 @@ import {
 
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import {
-  getBookingStatusSmsBody,
-  sendSms,
-} from "@/lib/twilio";
+import { notifyBookingStatusChanged } from "@/lib/customer-notifications";
 
 const ADMIN_SESSION_COOKIE = "soho_admin_session";
 
@@ -267,12 +264,28 @@ export async function PATCH(req: Request) {
           });
         });
 
-      await sendSms({
-        to: cancelledBooking.userProfile.phone,
-        body: getBookingStatusSmsBody(
-          BookingStatus.CANCELLED
-        ),
-      });
+      const notificationResult =
+        await notifyBookingStatusChanged({
+          phone: cancelledBooking.userProfile.phone,
+          email: cancelledBooking.userProfile.email,
+          customerName:
+            cancelledBooking.userProfile.fullName,
+          status: BookingStatus.CANCELLED,
+        });
+
+      if (
+        !notificationResult.smsSent ||
+        !notificationResult.emailSent
+      ) {
+        console.warn(
+          "BOOKING_CANCELLED_NOTIFICATION_PARTIAL_FAILURE",
+          {
+            bookingId: cancelledBooking.id,
+            smsSent: notificationResult.smsSent,
+            emailSent: notificationResult.emailSent,
+          }
+        );
+      }
 
       console.log(
         "BOOKING_CANCELLED_AUTHORIZATION_RELEASED",
@@ -315,10 +328,29 @@ export async function PATCH(req: Request) {
       },
     });
 
-    await sendSms({
-      to: booking.userProfile.phone,
-      body: getBookingStatusSmsBody(nextStatus),
-    });
+    const notificationResult =
+      await notifyBookingStatusChanged({
+        phone: booking.userProfile.phone,
+        email: booking.userProfile.email,
+        customerName:
+          booking.userProfile.fullName,
+        status: nextStatus,
+      });
+
+    if (
+      !notificationResult.smsSent ||
+      !notificationResult.emailSent
+    ) {
+      console.warn(
+        "BOOKING_STATUS_NOTIFICATION_PARTIAL_FAILURE",
+        {
+          bookingId: booking.id,
+          status: nextStatus,
+          smsSent: notificationResult.smsSent,
+          emailSent: notificationResult.emailSent,
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,

@@ -15,10 +15,9 @@ import {
   type HomeSize,
 } from "@/lib/pricing/cleaning-pricing";
 import {
-  getAdditionalAuthorizationCompletedSmsBody,
-  getBookingCreatedSmsBody,
-  sendSms,
-} from "@/lib/twilio";
+  notifyAdditionalAuthorizationCompleted,
+  notifyBookingCreated,
+} from "@/lib/customer-notifications";
 import { notifyAdminsOfNewBooking } from "@/lib/admin-booking-notifications";
 
 const ORIGINAL_BOOKING_FLOW = "MANUAL_CAPTURE";
@@ -360,13 +359,28 @@ async function handleOriginalBooking({
   const bookingTime =
     booking.preferredTime || "your selected time";
 
-  await sendSms({
-    to: booking.userProfile.phone,
-    body: getBookingCreatedSmsBody({
+  const customerNotification =
+    await notifyBookingCreated({
+      phone: booking.userProfile.phone,
+      email: booking.userProfile.email,
+      customerName: booking.userProfile.fullName,
       date: bookingDate,
       time: bookingTime,
-    }),
-  });
+    });
+
+  if (
+    !customerNotification.smsSent ||
+    !customerNotification.emailSent
+  ) {
+    console.warn(
+      "BOOKING_CREATED_CUSTOMER_NOTIFICATION_PARTIAL_FAILURE",
+      {
+        bookingId: booking.id,
+        smsSent: customerNotification.smsSent,
+        emailSent: customerNotification.emailSent,
+      }
+    );
+  }
 
   try {
     await notifyAdminsOfNewBooking({
@@ -716,15 +730,34 @@ async function handleAdditionalAuthorization({
     }
   );
 
-  await sendSms({
-    to: authorization.booking.userProfile.phone,
-    body:
-      getAdditionalAuthorizationCompletedSmsBody({
-        amount: stripeAmount,
-        currency:
-          result.additionalPayment.currency,
-      }),
-  });
+  const customerNotification =
+    await notifyAdditionalAuthorizationCompleted({
+      phone:
+        authorization.booking.userProfile.phone,
+      email:
+        authorization.booking.userProfile.email,
+      customerName:
+        authorization.booking.userProfile.fullName,
+      amount: stripeAmount,
+      currency:
+        result.additionalPayment.currency,
+    });
+
+  if (
+    !customerNotification.smsSent ||
+    !customerNotification.emailSent
+  ) {
+    console.warn(
+      "ADDITIONAL_AUTHORIZATION_COMPLETED_NOTIFICATION_PARTIAL_FAILURE",
+      {
+        additionalAuthorizationId:
+          authorization.id,
+        bookingId: authorization.bookingId,
+        smsSent: customerNotification.smsSent,
+        emailSent: customerNotification.emailSent,
+      }
+    );
+  }
 
   console.log(
     "ADDITIONAL_AUTHORIZATION_COMPLETED",
